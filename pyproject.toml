@@ -1,0 +1,97 @@
+[project]
+name = "my-test-ai-app"
+version = "0.1.0"
+description = "AI monorepo — multi-app, multi-lib, UV workspace"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+# Root has no runtime deps; workspace members declare their own.
+dependencies = []
+
+# ── UV WORKSPACE ──────────────────────────────────────────────────────────────
+[tool.uv.workspace]
+members = ["apps/*", "libs/*"]
+
+# Wire workspace members so apps can reference libs by name.
+[tool.uv.sources]
+ai-core        = { workspace = true }
+ai-elastic     = { workspace = true }
+ai-mongo       = { workspace = true }
+ai-openai      = { workspace = true }
+ai-thinktank   = { workspace = true }
+ai-toss-utils  = { workspace = true }
+
+# ── UV CONFIGURATION ──────────────────────────────────────────────────────────
+[tool.uv]
+system-certs = true
+
+# ── DEV / TEST / LINT GROUPS (root-level, installed via --all-groups) ─────────
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.0,<5.0.0",
+]
+test = [
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-asyncio>=0.24.0,<1.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "pytest-env>=1.1.0,<2.0.0",
+    "httpx>=0.27.0,<1.0.0",
+    "responses>=0.25.0,<1.0.0",
+]
+lint = [
+    "ruff>=0.9.0",
+    "mypy>=1.13.0",
+]
+
+# ── RUFF ──────────────────────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ── MYPY ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+exclude = [".venv", "build", "dist"]
+
+# ── PYTEST ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["apps", "libs"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: fast tests with no external deps",
+    "integration: tests requiring Elasticsearch, OpenAI, or network",
+]
+env = [
+    # Safe test defaults — never leak real secrets into test runs.
+    "D:APP_ENV=test",
+    "D:LOG_LEVEL=WARNING",
+    "D:OPENAI_API_KEY=",
+    "D:THINKTANK_API_KEY=",
+    "D:ELASTICSEARCH__URL=",
+    "D:ELASTICSEARCH__USERNAME=",
+    "D:ELASTICSEARCH__PASSWORD=",
+]
+
+# ── COVERAGE ──────────────────────────────────────────────────────────────────
+[tool.coverage.run]
+branch = true
+source = ["apps", "libs"]
+
+[tool.coverage.report]
+skip_empty = true
+fail_under = 70
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

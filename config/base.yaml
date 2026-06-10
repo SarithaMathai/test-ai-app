@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# base.yaml — non-secret defaults for all apps.
+#
+# Override locally:   config/local.yaml  (git-ignored)
+# Override via env:   APP__SECTION__KEY=value  (double underscore separator)
+# Secrets:            .env only — never put credentials here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+app:
+  name: "my-test-ai-app"
+  env: "development"       # development | staging | production
+  log_level: "INFO"
+
+llm:
+  provider: "thinktank"    # thinktank | openai | none
+  model: "gpt-4o"
+  temperature: 0.0
+  max_tokens: 2048
+  request_timeout: 60
+  max_retries: 3
+
+toss:
+  base_url: "https://thinktank.prod.target.com"
+  chat_endpoint: "/chat/completions"
+  app_name: "my-test-ai-app"   # sent as x-tgt-application request header
+  token_env_var: "THINKTANK_TOKEN"
+  is_prod: true                 # false for stage/dev OAuth endpoint
+
+openai:
+  base_url: ""             # leave blank to use the default OpenAI endpoint
+
+elasticsearch:
+  url: "http://localhost:9200"
+  username: ""
+  verify_certs: true
+  request_timeout: 30
+  max_retries: 3
+
+mongo:
+  # Embed credentials directly in the URL — never put them in YAML.
+  # Local dev (no auth):     mongodb://localhost:27017
+  # Authenticated:           mongodb://user:pass@host:27017/mydb
+  # Atlas / SRV:             mongodb+srv://user:pass@cluster.mongodb.net/mydb
+  url: "mongodb://localhost:27017"
+  database: "ai_app"
+
+spark:
+  host: "0.0.0.0"
+  port: 8000
+
+tcin:
+  data_dir: "./data"
+  batch_size: 500

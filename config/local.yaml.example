@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# local.yaml.example — copy this to config/local.yaml for local dev overrides.
+# config/local.yaml is git-ignored; never check it in.
+# ─────────────────────────────────────────────────────────────────────────────
+
+app:
+  log_level: "DEBUG"
+
+llm:
+  provider: "openai"       # switch provider locally without changing base.yaml
+
+elasticsearch:
+  url: "http://localhost:9200"
+  username: ""
+  verify_certs: false      # disable for local dev only

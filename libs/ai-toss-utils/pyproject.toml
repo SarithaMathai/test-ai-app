@@ -1,0 +1,24 @@
+[project]
+name = "ai-toss-utils"
+version = "0.1.0"
+description = "OAuth token management and authenticated HTTP client for ThinkTank / Model Garden APIs"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "ai-core",
+    "requests>=2.32.0,<3.0.0",
+    "tenacity>=8.2.0,<10.0.0",
+    "loguru>=0.7.3,<1.0.0",
+]
+
+# tgt-certs and pyOauthTarget are Target-internal packages installed separately
+# from Target's internal PyPI mirror. They are imported dynamically at runtime
+# (see ai_toss_utils/token.py) so they are NOT declared here as dependencies.
+# In a Target environment: uv add tgt-certs pyOauthTarget --index managed-pypi
+
+[build-system]
+requires = ["hatchling>=1.25.0,<2.0.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ai_toss_utils"]
