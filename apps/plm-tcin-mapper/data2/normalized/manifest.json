@@ -1,0 +1,207 @@
+{
+  "generated_at": "2026-06-06T15:45:14.671431+00:00",
+  "source": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5",
+  "destination": "data\\normalized",
+  "chunks": [
+    {
+      "chunk": "chunk_01",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk6\\chunk6",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk2.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk2.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_02",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk7\\chunk7",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk3.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk3.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_03",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk8\\chunk8",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk4.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk4.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_04",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk10",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk6.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk6.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_05",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk12\\chunk12",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk7.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk7.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_06",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk13\\chunk13",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk8.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk8.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_07",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk14\\chunk14",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk9.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk9.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_08",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk15\\chunk15",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk10.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk10.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_09",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk16\\chunk16",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk11.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk11.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_10",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk21\\chunk21",
+      "files": {
+        "tcin": {
+          "source": "PIDR1_TCIN_NewAttempt_chunk21.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDR1VariationReport_NewAttempt_chunk21.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_11",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk22\\chunk22",
+      "files": {
+        "tcin": {
+          "source": "PIDR1_TCIN_NewAttempt_chunk22.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDR1VariationReport_NewAttempt_chunk22.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_12",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk23\\chunk23",
+      "files": {
+        "tcin": {
+          "source": "PIDR1_TCIN_NewAttempt_chunk23.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDR1VariationReport_NewAttempt_chunk23.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_13",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk24\\chunk24",
+      "files": {
+        "tcin": {
+          "source": "PIDR1_TCIN_NewAttempt_chunk24.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDR1VariationReport_NewAttempt_chunk24.csv",
+          "dest": "variation.csv"
+        }
+      }
+    },
+    {
+      "chunk": "chunk_14",
+      "source_dir": "c:\\Saritha\\AI\\tcinimpressionmapping\\Jun5\\chunk25\\chunk25",
+      "files": {
+        "tcin": {
+          "source": "PID_TCIN_NewAttempt_chunk25.csv",
+          "dest": "tcin.csv"
+        },
+        "variation": {
+          "source": "PIDVariationReport_NewAttempt_chunk1.csv",
+          "dest": "variation.csv"
+        },
+        "errors": {
+          "source": "PID_Error_NewAttempt_chunk25.csv",
+          "dest": "errors.csv"
+        }
+      }
+    }
+  ]
+}
