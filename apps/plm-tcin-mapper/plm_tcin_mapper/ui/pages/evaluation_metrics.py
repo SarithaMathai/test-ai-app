@@ -60,12 +60,36 @@ def render():
         "Detailed accuracy analysis: per-signal, per-department, LLM impact, and confidence calibration."
     )
 
+    # Control bar
+    col1, col2, col3 = st.columns([2, 3, 3])
+    with col1:
+        run_fresh = st.button("▶ Run Fresh Eval", type="primary")
+        if run_fresh:
+            with st.spinner("Computing evaluation metrics…"):
+                try:
+                    from plm_tcin_mapper.pipeline.evaluator import run_eval
+                    db = get_db()
+                    if db is not None:
+                        run_eval(db=db, persist=True)
+                        st.success("Evaluation complete!")
+                        _load_latest_extended_eval.clear()
+                        _load_eval_history.clear()
+                    else:
+                        st.error("Database connection failed.")
+                except Exception as e:
+                    st.error(f"Eval failed: {e}")
+    with col2:
+        st.caption("Run a fresh evaluation to update metrics from the current mappings collection.")
+
+    st.divider()
+
     # Tabs for different views
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Overview",
         "🔧 Per-Signal Analysis",
         "🏢 Per-Department Analysis",
         "🤖 LLM Impact",
+        "📈 Trend",
     ])
 
     with tab1:
@@ -79,6 +103,9 @@ def render():
 
     with tab4:
         _render_llm_impact()
+
+    with tab5:
+        _render_trend()
 
 
 def _render_overview():
@@ -442,3 +469,39 @@ def _render_llm_impact():
             f"❌ **LLM is hurting performance** ({improvement:+.1%} worse). "
             "Review LLM configuration and consider disabling until fixed."
         )
+
+
+def _render_trend():
+    """Render confidence and quality trends over recent eval runs."""
+    history = _load_eval_history(limit=30)
+
+    if len(history) < 2:
+        st.info("Need at least 2 evaluation runs to show trends. Current runs: " + str(len(history)))
+        return
+
+    st.subheader("Metrics Trend")
+    st.markdown("How have accuracy metrics changed over recent evaluations?")
+
+    # Reverse to show oldest first
+    history = list(reversed(history))
+
+    # Extract trend data
+    trend_data = []
+    for run in history:
+        ts = run.get("created_at")
+        trend_data.append({
+            "Date": str(ts)[:10] if ts else "—",
+            "Avg Confidence": run.get("avg_color_confidence", 0),
+            "HIGH %": run.get("pct_high", 0) * 100,
+            "LOW %": run.get("pct_low", 0) * 100,
+        })
+
+    trend_df = pd.DataFrame(trend_data).set_index("Date")
+
+    # Line chart
+    st.line_chart(trend_df[["Avg Confidence", "HIGH %"]])
+    st.caption("Trend: Avg Confidence and HIGH-tier percentage over time")
+
+    # Table
+    with st.expander("Full trend table"):
+        st.dataframe(trend_df, use_container_width=True)

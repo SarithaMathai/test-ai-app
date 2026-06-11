@@ -22,10 +22,11 @@ def _load_dept_ids() -> list[str]:
 
 
 @st.cache_data(ttl=60, show_spinner=False)
-def _load_pids_for_dept(dept_id: str, pid_filter: str, limit: int = 50) -> list[dict]:
+def _load_pids_for_dept(dept_id: str, pid_filter: str, status_filter: str | None = None, limit: int = 50) -> list[dict]:
     """Return per-PID aggregated rows for the department.
 
     Sorted worst-confidence-first so needs-review PIDs appear at the top.
+    Status filter: None (all), "needs_review", "confirmed", "rejected", "corrected".
     """
     db = get_db()
     if db is None:
@@ -34,6 +35,15 @@ def _load_pids_for_dept(dept_id: str, pid_filter: str, limit: int = 50) -> list[
         match: dict = {"department_ids": dept_id}
         if pid_filter:
             match["pid"] = pid_filter
+
+        if status_filter == "needs_review":
+            match["status"] = {"$in": ["NO_MATCH", "NEEDS_REVIEW", "NEEDS_SPOT_CHECK"]}
+        elif status_filter == "confirmed":
+            match["status"] = "CONFIRMED"
+        elif status_filter == "rejected":
+            match["status"] = "REJECTED"
+        elif status_filter == "corrected":
+            match["status"] = "CORRECTED"
 
         pipeline = [
             {"$match": match},
@@ -107,7 +117,7 @@ def render() -> None:
 
     # ── Filters ───────────────────────────────────────────────────────────────
     dept_ids = _load_dept_ids()
-    f1, f2 = st.columns([2, 2])
+    f1, f2, f3 = st.columns([2, 2, 2])
     with f1:
         if dept_ids:
             dept_id = st.selectbox("Department", options=dept_ids)
@@ -115,8 +125,22 @@ def render() -> None:
             dept_id = st.text_input("Department ID", placeholder="e.g. 214")
     with f2:
         raw_pid_filter = st.text_input("Filter by PID", placeholder="optional — e.g. PID-009E83")
+    with f3:
+        status_filter = st.selectbox(
+            "Status",
+            options=["All", "Needs Review", "Confirmed", "Rejected", "Corrected"],
+            help="Filter by mapping review status"
+        )
 
     pid_filter = raw_pid_filter.strip().upper()
+    status_map = {
+        "All": None,
+        "Needs Review": "needs_review",
+        "Confirmed": "confirmed",
+        "Rejected": "rejected",
+        "Corrected": "corrected",
+    }
+    status_filter_val = status_map[status_filter]
 
     if not dept_id:
         st.info("Select a department above.")
@@ -124,7 +148,7 @@ def render() -> None:
 
     # ── Load PID list ─────────────────────────────────────────────────────────
     with st.spinner(f"Loading department {dept_id} …"):
-        pid_rows = _load_pids_for_dept(dept_id, pid_filter, limit=50)
+        pid_rows = _load_pids_for_dept(dept_id, pid_filter, status_filter=status_filter_val, limit=50)
 
     if not pid_rows:
         msg = f"No products found for department **{dept_id}**"
@@ -188,6 +212,6 @@ def render() -> None:
                 st.markdown("")
 
             if mapping_docs:
-                render_pid_card(pid, mapping_docs, var_docs, key_suffix=f"dept_{pid}", review_enabled=False)
+                render_pid_card(pid, mapping_docs, var_docs, key_suffix=f"dept_{pid}", review_enabled=True)
             else:
                 st.info("No mapping data loaded for this PID.")
