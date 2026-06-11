@@ -1,28 +1,23 @@
 # ai-mongo
 
-MongoDB client for the AI monorepo. Built on `pymongo`, configured via `ai-core` Settings.
+Shared MongoDB client for PLM AI apps. Provides Motor (async) and PyMongo (sync) clients wrapped in a `MongoClientManager`.
+
+Install only in apps that need MongoDB — other apps do not pay the dependency cost.
 
 ## Usage
 
 ```python
-from ai_mongo import MongoClient
+from ai_core.config import get_settings
+from ai_mongo import MongoClientManager
 
-mongo = MongoClient.from_settings(settings)
-col = mongo.collection("records")
-doc = col.find_one({"_id": "abc"})
-```
+settings = get_settings()
+mongo = MongoClientManager(settings.mongo)
 
-## Configuration
+# Async
+db = mongo.get_db()
+docs = await db["my_collection"].find({}).to_list(100)
 
-Set `MONGO__URL` to your MongoDB connection string. Embed credentials directly:
-
-```
-# Local dev (no auth)
-MONGO__URL=mongodb://localhost:27017
-
-# Authenticated
-MONGO__URL=mongodb://user:pass@host:27017/mydb
-
-# Atlas / SRV
-MONGO__URL=mongodb+srv://user:pass@cluster.mongodb.net/mydb
+# Sync (CLI scripts, ingestion)
+sync_db = mongo.get_sync_db()
+docs = list(sync_db["my_collection"].find({}))
 ```

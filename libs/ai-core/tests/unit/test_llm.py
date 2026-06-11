@@ -6,6 +6,8 @@ from ai_core.exceptions import ConfigError
 from ai_core.llm.base import ChatMessage, ChatRequest, ChatResponse, LLMClient, NoOpLLMClient
 from ai_core.llm.factory import build_llm_client
 
+pytestmark = pytest.mark.unit
+
 # ── ChatMessage / ChatRequest / ChatResponse ──────────────────────────────────
 
 

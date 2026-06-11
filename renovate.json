@@ -1,0 +1,7 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>target-corp/renovate-config:python",
+    "github>target-corp/renovate-config:docker"
+  ]
+}

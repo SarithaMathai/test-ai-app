@@ -10,6 +10,8 @@ from pydantic import BaseModel
 
 from ai_core.exceptions import ConfigError
 
+_SECRET_DIRS = (Path("/tap/secret"), Path("/tap/secret/restricted"))
+
 
 class AppConfig(BaseModel):
     name: str = "my-test-ai-app"
@@ -24,10 +26,6 @@ class LLMConfig(BaseModel):
     max_tokens: int = 2048
     request_timeout: int = 60
     max_retries: int = 3
-
-
-class OpenAIConfig(BaseModel):
-    base_url: str = ""
 
 
 class ElasticsearchConfig(BaseModel):
@@ -52,11 +50,14 @@ class MongoConfig(BaseModel):
     database: str = "ai_app"
 
 
-class TossConfig(BaseModel):
+class ThinkTankConfig(BaseModel):
     """ThinkTank / Model Garden connection, OAuth, and API settings.
 
     Secrets (oauth_client_secret, oauth_nuid_password, api_key) are injected
-    from env vars at runtime — they are never read from YAML.
+    from environment variables at runtime — never from YAML files.
+
+    In TAP clusters, these are surfaced as env vars via Kubernetes Secrets
+    or ServiceBindings bound to the workload — no secret YAML file is needed.
     """
 
     base_url: str = "https://thinktank.prod.target.com"
@@ -67,6 +68,7 @@ class TossConfig(BaseModel):
     is_prod: bool = True  # True for prod OAuth; False for stage/dev
     # Populated from env at startup — not settable via YAML
     api_key: str = ""
+    gateway_api_key: str = ""  # sent as x-api-key header when set (API gateway subscription key)
     oauth_client_id: str = ""
     oauth_client_secret: str = ""
     oauth_nuid_username: str = ""
@@ -83,15 +85,49 @@ class TCINConfig(BaseModel):
     batch_size: int = 500
 
 
+class MatchingConfig(BaseModel):
+    """Confidence thresholds for the TCIN → impression deterministic matching pipeline."""
+
+    auto_confirm_threshold: float = 0.85
+    no_match_threshold: float = 0.75
+    llm_fallback_threshold: float = 0.60
+    low_confidence_threshold: float = 0.50
+    llm_ambiguity_band: float = 0.15
+
+
+class IngestionConfig(BaseModel):
+    """CSV ingestion pipeline settings.
+
+    The ingestion pipeline detects file kind (tcin / variation / error) by
+    sniffing CSV headers, so no per-kind glob patterns are needed — it scans
+    every ``*.csv`` under each ``chunk_*`` directory inside ``data_dir``.
+    """
+
+    data_dir: str = "./data/normalized"
+    batch_size: int = 500
+    skip_existing: bool = True
+
+
+class EvalConfig(BaseModel):
+    """Guardrail thresholds for the evaluation pipeline."""
+
+    min_high_confidence_pct: float = 0.40
+    max_low_confidence_pct: float = 0.20
+    review_queue_backlog_limit: int = 1000
+    min_avg_confidence: float = 0.60
+
+
 class Settings(BaseModel):
     app: AppConfig = AppConfig()
     llm: LLMConfig = LLMConfig()
-    toss: TossConfig = TossConfig()
-    openai: OpenAIConfig = OpenAIConfig()
+    thinktank: ThinkTankConfig = ThinkTankConfig()
     elasticsearch: ElasticsearchConfig = ElasticsearchConfig()
     mongo: MongoConfig = MongoConfig()
     spark: SparkConfig = SparkConfig()
     tcin: TCINConfig = TCINConfig()
+    matching: MatchingConfig = MatchingConfig()
+    ingestion: IngestionConfig = IngestionConfig()
+    eval: EvalConfig = EvalConfig()
 
 
 def _coerce(value: str) -> Any:
@@ -150,22 +186,39 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return result
 
 
+def _read_secret(name: str) -> str:
+    """Read a secret from env first, then from TAP-mounted secret files."""
+    env_value = os.environ.get(name, "")
+    if env_value:
+        return env_value
+
+    for secret_dir in _SECRET_DIRS:
+        secret_path = secret_dir / name
+        try:
+            if secret_path.is_file():
+                return secret_path.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+
+    return ""
+
+
 def _inject_secrets(settings: Settings) -> None:
-    """Pull secrets from env vars into config objects after YAML + env-override loading.
+    """Pull secrets into config objects after YAML + env-override loading.
 
-    These are never read from YAML. The convention is flat env var names so they
-    integrate naturally with secret managers (AWS SSM, K8s secrets, .env files).
+    These are never read from YAML. Prefer flat env var names so they integrate
+    naturally with secret managers (.env, K8s env injection). In TAP, fall back
+    to mounted secret files under /tap/secret when env vars are not present.
     """
-    env = os.environ
-
-    # Toss / ThinkTank OAuth
-    settings.toss.api_key = env.get("THINKTANK_API_KEY", "")
-    settings.toss.oauth_client_id = env.get("THINKTANK_OAUTH_CLIENT_ID", "")
-    settings.toss.oauth_client_secret = env.get("THINKTANK_OAUTH_CLIENT_SECRET", "")
-    settings.toss.oauth_nuid_username = env.get("THINKTANK_OAUTH_NUID_USERNAME", "")
-    settings.toss.oauth_nuid_password = env.get("THINKTANK_OAUTH_NUID_PASSWORD", "")
-
-    # OpenAI (no config object — accessed directly from env by the client)
+    # ThinkTank OAuth + API key secrets
+    # Locally: set in .env (never commit to git).
+    # In TAP: runtime-connector mounts them under /tap/secret.
+    settings.thinktank.api_key = _read_secret("THINKTANK_API_KEY")
+    settings.thinktank.gateway_api_key = _read_secret("THINKTANK_GATEWAY_API_KEY")
+    settings.thinktank.oauth_client_id = _read_secret("THINKTANK_OAUTH_CLIENT_ID")
+    settings.thinktank.oauth_client_secret = _read_secret("THINKTANK_OAUTH_CLIENT_SECRET")
+    settings.thinktank.oauth_nuid_username = _read_secret("THINKTANK_OAUTH_NUID_USERNAME")
+    settings.thinktank.oauth_nuid_password = _read_secret("THINKTANK_OAUTH_NUID_PASSWORD")
 
 
 def load_settings(config_path: Path | None = None) -> Settings:

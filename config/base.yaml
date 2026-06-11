@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# base.yaml — non-secret defaults for all apps.
+# base.yaml — non-secret defaults for PLM Think Tank AI.
 #
 # Override locally:   config/local.yaml  (git-ignored)
 # Override via env:   APP__SECTION__KEY=value  (double underscore separator)
@@ -7,47 +7,54 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 app:
-  name: "my-test-ai-app"
+  name: "plm-think-tank-ai"
   env: "development"       # development | staging | production
   log_level: "INFO"
 
 llm:
   provider: "thinktank"    # thinktank | openai | none
-  model: "gpt-4o"
-  temperature: 0.0
+  model: "gemini-1.5-pro"
+  temperature: 1.0
   max_tokens: 2048
-  request_timeout: 60
+  request_timeout: 120
   max_retries: 3
 
-toss:
-  base_url: "https://thinktank.prod.target.com"
-  chat_endpoint: "/chat/completions"
-  app_name: "my-test-ai-app"   # sent as x-tgt-application request header
-  token_env_var: "THINKTANK_TOKEN"
-  is_prod: true                 # false for stage/dev OAuth endpoint
-
-openai:
-  base_url: ""             # leave blank to use the default OpenAI endpoint
-
-elasticsearch:
-  url: "http://localhost:9200"
-  username: ""
-  verify_certs: true
-  request_timeout: 30
-  max_retries: 3
-
-mongo:
-  # Embed credentials directly in the URL — never put them in YAML.
-  # Local dev (no auth):     mongodb://localhost:27017
-  # Authenticated:           mongodb://user:pass@host:27017/mydb
-  # Atlas / SRV:             mongodb+srv://user:pass@cluster.mongodb.net/mydb
-  url: "mongodb://localhost:27017"
-  database: "ai_app"
+thinktank:
+  base_url: "https://api-internal.target.com"
+  chat_endpoint: "/gen_ai_model_requests/v1/chat/completions"
+  app_name: "plm-think-tank-ai"   # sent as x-tgt-application request header
+  tenant_id: ""
+  token_env_var: "PLM_THINKTANK_TOKEN"
+  is_prod: true                    # false for stage/dev OAuth endpoint
 
 spark:
   host: "0.0.0.0"
-  port: 8000
+  port: 8080
 
-tcin:
-  data_dir: "./data"
+# ── MongoDB (used by plm-tcin-mapper; ignored by apps that don't depend on ai-mongo) ──
+mongo:
+  url: "mongodb://localhost:27017"
+  database: "tcin_mapper"
+
+# ── TCIN Mapper — matching thresholds ────────────────────────────────────────
+matching:
+  auto_confirm_threshold: 0.85
+  no_match_threshold: 0.75
+  llm_fallback_threshold: 0.60
+  low_confidence_threshold: 0.50
+  llm_ambiguity_band: 0.15
+
+# ── TCIN Mapper — ingestion settings ─────────────────────────────────────────
+# data_dir is resolved relative to the process working directory (monorepo root
+# when launched via the Makefile). Override with APP__INGESTION__DATA_DIR.
+ingestion:
+  data_dir: "apps/plm-tcin-mapper/data/normalized"
   batch_size: 500
+  skip_existing: true
+
+# ── TCIN Mapper — eval guardrails ─────────────────────────────────────────────
+eval:
+  min_high_confidence_pct: 0.40
+  max_low_confidence_pct: 0.20
+  review_queue_backlog_limit: 1000
+  min_avg_confidence: 0.60

@@ -1,0 +1,31 @@
+[project]
+name = "plm-tcin-mapper"
+version = "0.1.0"
+description = "PLM TCIN Impression Mapper — FastAPI service that runs the deterministic + LLM matching pipeline"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "ai-core",
+    "ai-mongo",
+    "ai-thinktank",
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn[standard]>=0.32.0,<1.0.0",
+    "gunicorn>=23.0.0,<24.0.0",
+    "rapidfuzz>=3.9.0,<4.0.0",
+    "scipy>=1.13.0,<2.0.0",
+    "numpy>=1.26.0,<3.0.0",
+    "pandas>=2.2.0,<3.0.0",
+    "tqdm>=4.66.0,<5.0.0",
+    "pyyaml>=6.0.0,<7.0.0",
+]
+
+[project.scripts]
+tcin-mapper-start = "plm_tcin_mapper.main:start"
+tcin-mapper-ui = "plm_tcin_mapper.ui.streamlit_app:launch"
+
+[build-system]
+requires = ["hatchling>=1.25.0,<2.0.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["plm_tcin_mapper"]

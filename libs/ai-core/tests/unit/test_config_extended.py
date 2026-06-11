@@ -1,7 +1,11 @@
-"""Unit tests for MongoConfig, TossConfig, local.yaml merge, and secret injection."""
+"""Unit tests for MongoConfig, ThinkTankConfig, local.yaml merge, and secret injection."""
 
+import ai_core.config as config_module
+import pytest
 import yaml
 from ai_core.config import load_settings
+
+pytestmark = pytest.mark.unit
 
 # ── MongoConfig defaults ───────────────────────────────────────────────────────
 
@@ -32,42 +36,59 @@ def test_mongo_env_override(monkeypatch, tmp_path):
     assert settings.mongo.url == "mongodb://prod:27017"
 
 
-# ── TossConfig defaults ────────────────────────────────────────────────────────
+# ── ThinkTankConfig defaults ──────────────────────────────────────────────────
 
 
-def test_toss_defaults(tmp_path):
+def test_thinktank_defaults(tmp_path):
     settings = load_settings(config_path=tmp_path / "missing.yaml")
-    assert settings.toss.base_url == "https://thinktank.prod.target.com"
-    assert settings.toss.chat_endpoint == "/chat/completions"
-    assert settings.toss.app_name == "my-test-ai-app"
-    assert settings.toss.is_prod is True
-    assert settings.toss.token_env_var == "THINKTANK_TOKEN"
-    assert settings.toss.api_key == ""
+    assert settings.thinktank.base_url == "https://thinktank.prod.target.com"
+    assert settings.thinktank.chat_endpoint == "/chat/completions"
+    assert settings.thinktank.app_name == "my-test-ai-app"
+    assert settings.thinktank.is_prod is True
+    assert settings.thinktank.token_env_var == "THINKTANK_TOKEN"
+    assert settings.thinktank.api_key == ""
 
 
 # ── Secret injection from env vars ────────────────────────────────────────────
 
 
-def test_toss_api_key_injected_from_env(monkeypatch, tmp_path):
+def test_thinktank_api_key_injected_from_env(monkeypatch, tmp_path):
     monkeypatch.setenv("THINKTANK_API_KEY", "sk-test-key-123")
     settings = load_settings(config_path=tmp_path / "missing.yaml")
-    assert settings.toss.api_key == "sk-test-key-123"
+    assert settings.thinktank.api_key == "sk-test-key-123"
 
 
-def test_toss_oauth_injected_from_env(monkeypatch, tmp_path):
+def test_thinktank_oauth_injected_from_env(monkeypatch, tmp_path):
     monkeypatch.setenv("THINKTANK_OAUTH_CLIENT_ID", "client-abc")
     monkeypatch.setenv("THINKTANK_OAUTH_CLIENT_SECRET", "secret-xyz")
     settings = load_settings(config_path=tmp_path / "missing.yaml")
-    assert settings.toss.oauth_client_id == "client-abc"
-    assert settings.toss.oauth_client_secret == "secret-xyz"
+    assert settings.thinktank.oauth_client_id == "client-abc"
+    assert settings.thinktank.oauth_client_secret == "secret-xyz"
+
+
+def test_thinktank_api_key_injected_from_tap_secret_file(monkeypatch, tmp_path):
+    tap_secret_dir = tmp_path / "tap-secret"
+    tap_secret_dir.mkdir()
+    (tap_secret_dir / "THINKTANK_API_KEY").write_text("tap-secret-key\n")
+    monkeypatch.setattr(config_module, "_SECRET_DIRS", (tap_secret_dir,))
+    settings = load_settings(config_path=tmp_path / "missing.yaml")
+    assert settings.thinktank.api_key == "tap-secret-key"
+
+
+def test_env_secret_wins_over_tap_secret_file(monkeypatch, tmp_path):
+    tap_secret_dir = tmp_path / "tap-secret"
+    tap_secret_dir.mkdir()
+    (tap_secret_dir / "THINKTANK_API_KEY").write_text("tap-secret-key\n")
+    monkeypatch.setattr(config_module, "_SECRET_DIRS", (tap_secret_dir,))
+    monkeypatch.setenv("THINKTANK_API_KEY", "env-secret-key")
+    settings = load_settings(config_path=tmp_path / "missing.yaml")
+    assert settings.thinktank.api_key == "env-secret-key"
 
 
 def test_mongo_url_with_embedded_credentials(tmp_path):
     """Credentials embedded in the URL are passed through unchanged."""
     cfg = tmp_path / "config.yaml"
-    cfg.write_text(
-        yaml.dump({"mongo": {"url": "mongodb://user:pass@host:27017/mydb"}})
-    )
+    cfg.write_text(yaml.dump({"mongo": {"url": "mongodb://user:pass@host:27017/mydb"}}))
     settings = load_settings(config_path=cfg)
     assert "user:pass@" in settings.mongo.url
 

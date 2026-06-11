@@ -25,14 +25,31 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def _thinktank_headers(settings: Settings) -> dict[str, str]:
+    """Build ThinkTank-specific request headers from settings."""
+    tt = settings.thinktank
+    headers: dict[str, str] = {}
+    if tt.app_name:
+        headers["x-tgt-application"] = tt.app_name
+    if tt.tenant_id:
+        headers["tenant-id"] = tt.tenant_id
+    if tt.gateway_api_key:
+        headers["x-api-key"] = tt.gateway_api_key
+    return headers
+
+
 class ThinkTankClient(LLMClient):
     """ThinkTank Model Garden chat completion client."""
 
     def __init__(self, settings: Settings) -> None:
-        from ai_toss_utils.http import AuthenticatedHttpClient
+        from ai_core.http import AuthenticatedHttpClient
 
         self._settings = settings
-        self._http = AuthenticatedHttpClient.from_settings(settings)
+        self._http = AuthenticatedHttpClient(
+            settings,
+            base_url=settings.thinktank.base_url,
+            headers=_thinktank_headers(settings),
+        )
         self._model = settings.llm.model
         self._temperature = settings.llm.temperature
         self._max_tokens = settings.llm.max_tokens
@@ -69,7 +86,7 @@ class ThinkTankClient(LLMClient):
         log.debug("ThinkTank request: model=%s messages=%d", model, len(request.messages))
 
         try:
-            resp = self._http.call_chat_completions(payload)
+            resp = self._http.post(self._settings.thinktank.chat_endpoint, payload)
         except Exception as exc:
             raise LLMError(
                 f"ThinkTank API call failed: {exc}",

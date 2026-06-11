@@ -1,56 +1,86 @@
-"""MongoDB client wrapper.
+"""MongoDB client manager — wraps Motor (async) and PyMongo (sync).
 
-URL-first: embed credentials directly in the connection string.
-
-  Local dev (no auth):
-      MONGO__URL=mongodb://localhost:27017
-
-  Authenticated (user:pass in URL):
-      MONGO__URL=mongodb://myuser:mypassword@host:27017/mydb
-
-  Atlas / SRV:
-      MONGO__URL=mongodb+srv://user:pass@cluster.mongodb.net/mydb
-
-Usage:
-    from ai_mongo import MongoClient
-    mongo = MongoClient.from_settings(settings)
-    col = mongo.collection("records")
-    doc = col.find_one({"_id": "abc"})
+Receives a MongoConfig from ai_core; does not load config itself.
+Apps instantiate and cache this via their dependency layer.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import motor.motor_asyncio as motor
+from ai_core.config import MongoConfig
+from ai_core.exceptions import MongoError
+from pymongo import MongoClient
+from pymongo.database import Database
 
-if TYPE_CHECKING:
-    from ai_core.config import Settings
 
+class MongoClientManager:
+    """Holds lazy-initialized Motor and PyMongo clients for a single MongoDB instance."""
 
-class MongoClient:
-    def __init__(self, url: str, database: str) -> None:
-        import pymongo
+    def __init__(self, config: MongoConfig) -> None:
+        self._config = config
+        self._async_client: motor.AsyncIOMotorClient | None = None
+        self._sync_client: MongoClient | None = None
 
-        self._client: pymongo.MongoClient[Any] = pymongo.MongoClient(url)
-        self._db = self._client[database]
+    # ── Async (Motor) ─────────────────────────────────────────────────────────
 
-    @classmethod
-    def from_settings(cls, settings: Settings, database: str | None = None) -> MongoClient:
-        """Construct from Settings.  Override database= to target a different DB."""
-        cfg = settings.mongo
-        return cls(url=cfg.url, database=database or cfg.database)
+    def get_async_client(self) -> motor.AsyncIOMotorClient:
+        if self._async_client is None:
+            try:
+                self._async_client = motor.AsyncIOMotorClient(
+                    self._config.url,
+                    serverSelectionTimeoutMS=5000,
+                )
+            except Exception as exc:
+                raise MongoError(f"Failed to create async MongoDB client: {exc}") from exc
+        return self._async_client
 
-    def collection(self, name: str) -> Any:
-        """Return a pymongo Collection for the given name."""
-        return self._db[name]
+    def get_db(self) -> motor.AsyncIOMotorDatabase:
+        return self.get_async_client()[self._config.database]
 
-    def ping(self) -> bool:
-        """Return True if the MongoDB server is reachable."""
+    def get_collection(self, name: str) -> motor.AsyncIOMotorCollection:
+        return self.get_db()[name]
+
+    # ── Sync (PyMongo) ────────────────────────────────────────────────────────
+
+    def get_sync_client(self) -> MongoClient:
+        if self._sync_client is None:
+            try:
+                self._sync_client = MongoClient(
+                    self._config.url,
+                    serverSelectionTimeoutMS=5000,
+                )
+            except Exception as exc:
+                raise MongoError(f"Failed to create sync MongoDB client: {exc}") from exc
+        return self._sync_client
+
+    def get_sync_db(self) -> Database:
+        return self.get_sync_client()[self._config.database]
+
+    def get_sync_collection(self, name: str):
+        return self.get_sync_db()[name]
+
+    # ── Health ────────────────────────────────────────────────────────────────
+
+    async def ping(self) -> bool:
         try:
-            self._client.admin.command("ping")
+            await self.get_async_client().admin.command("ping")
             return True
         except Exception:
             return False
 
+    def ping_sync(self) -> bool:
+        try:
+            self.get_sync_client().admin.command("ping")
+            return True
+        except Exception:
+            return False
+
+    # ── Lifecycle ─────────────────────────────────────────────────────────────
+
     def close(self) -> None:
-        """Close the underlying connection pool."""
-        self._client.close()
+        if self._async_client is not None:
+            self._async_client.close()
+            self._async_client = None
+        if self._sync_client is not None:
+            self._sync_client.close()
+            self._sync_client = None

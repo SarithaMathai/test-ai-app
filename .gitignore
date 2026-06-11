@@ -1,29 +1,63 @@
-# Secrets
+# ── Secrets & local config ────────────────────────────────────────────────────
 .env
+.env.*
+!.env.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
 config/local.yaml
+config/local.*.yaml
+*.secret
 
-# UV / Python
+# ── UV ───────────────────────────────────────────────────────────────────────
+# uv.lock IS committed — it pins exact versions for reproducible installs.
+# .venv is NOT committed — uv recreates it from uv.lock.
 .venv/
+
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
 *.egg-info/
 dist/
 build/
 
-# Test / coverage
+# ── Virtual environments ──────────────────────────────────────────────────────
+venv/
+ENV/
+env/
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
+.tox/
 
-# Type-checking
+# ── Type checking / lint caches ───────────────────────────────────────────────
 .mypy_cache/
+.dmypy.json
 .ruff_cache/
 
-# IDE
-.vscode/
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/settings.json
 .idea/
-*.iml
-
-# OS
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+
+# ── Data & outputs — present locally for ingestion, never committed ───────────
+# plm-tcin-mapper bundles normalized CSV chunks under apps/plm-tcin-mapper/data/.
+# They are large and reproducible from source, so keep them out of git.
+apps/*/data/
+matched_*.csv
+*.xlsx
+*.parquet
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/

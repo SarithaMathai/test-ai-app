@@ -1,30 +1,43 @@
 [project]
-name = "my-test-ai-app"
+name = "plm-ai-apps"
 version = "0.1.0"
-description = "AI monorepo — multi-app, multi-lib, UV workspace"
+description = "PLM AI monorepo — apps and shared libraries for PLM AI features"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-# Root has no runtime deps; workspace members declare their own.
+# Root has no runtime deps — workspace members declare their own.
 dependencies = []
 
 # ── UV WORKSPACE ──────────────────────────────────────────────────────────────
 [tool.uv.workspace]
 members = ["apps/*", "libs/*"]
 
-# Wire workspace members so apps can reference libs by name.
+# ── UV SOURCES — wire dependency names → local workspace paths ────────────────
 [tool.uv.sources]
-ai-core        = { workspace = true }
-ai-elastic     = { workspace = true }
-ai-mongo       = { workspace = true }
-ai-openai      = { workspace = true }
-ai-thinktank   = { workspace = true }
-ai-toss-utils  = { workspace = true }
+ai-core       = { workspace = true }
+ai-mongo      = { workspace = true }
+ai-thinktank  = { workspace = true }
+ai-toss-utils = { workspace = true }
 
 # ── UV CONFIGURATION ──────────────────────────────────────────────────────────
 [tool.uv]
 system-certs = true
+index-strategy = "unsafe-best-match"
+python-install-mirror = "https://binrepo.target.com/artifactory/github-remote/astral-sh/python-build-standalone/releases/download"
 
-# ── DEV / TEST / LINT GROUPS (root-level, installed via --all-groups) ─────────
+# ── TARGET PYPI INDEXES ───────────────────────────────────────────────────────
+# Default: Target's Artifactory PyPI mirror.
+[[tool.uv.index]]
+name = "tgt-pypi"
+url = "https://binrepo.target.com/artifactory/api/pypi/tgt-PyPI/simple"
+default = true
+
+# Target-internal packages: tgt-certs, pyOauthTarget.
+# Install in Target environments: uv add tgt-certs pyOauthTarget --index tgt-python
+[[tool.uv.index]]
+name = "tgt-python"
+url = "https://binrepo.target.com/artifactory/api/pypi/tgt-python/simple"
+
+# ── DEPENDENCY GROUPS (root-level, applied to all workspace packages) ─────────
 [dependency-groups]
 dev = [
     "pre-commit>=4.0.0,<5.0.0",
@@ -36,17 +49,23 @@ test = [
     "pytest-env>=1.1.0,<2.0.0",
     "httpx>=0.27.0,<1.0.0",
     "responses>=0.25.0,<1.0.0",
+    "pyyaml>=6.0.0,<7.0.0",
 ]
 lint = [
     "ruff>=0.9.0",
     "mypy>=1.13.0",
 ]
+# Optional operator UI for plm-tcin-mapper (Streamlit). Not installed in the
+# Docker image (the build uses `uv sync --package`, which excludes named groups).
+ui = [
+    "streamlit>=1.40.0,<2.0.0",
+]
 
 # ── RUFF ──────────────────────────────────────────────────────────────────────
 [tool.ruff]
 target-version = "py312"
-line-length = 100
-extend-exclude = [".venv", "build", "dist"]
+line-length = 119
+extend-exclude = [".venv", "build", "dist", "__pycache__"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
@@ -65,21 +84,26 @@ exclude = [".venv", "build", "dist"]
 # ── PYTEST ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["apps", "libs"]
+addopts = "--import-mode=importlib"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
-    "unit: fast tests with no external deps",
-    "integration: tests requiring Elasticsearch, OpenAI, or network",
+    "unit: isolated tests — single class/function, all deps mocked, no I/O (always run in CI)",
+    "integration: multiple components wired together, external services mocked — no real network (always run in CI)",
+    "functional: end-to-end tests against real external services (ThinkTank API) — need credentials, skips when absent",
 ]
 env = [
-    # Safe test defaults — never leak real secrets into test runs.
     "D:APP_ENV=test",
     "D:LOG_LEVEL=WARNING",
-    "D:OPENAI_API_KEY=",
     "D:THINKTANK_API_KEY=",
-    "D:ELASTICSEARCH__URL=",
-    "D:ELASTICSEARCH__USERNAME=",
-    "D:ELASTICSEARCH__PASSWORD=",
+    "D:THINKTANK_GATEWAY_API_KEY=",
+    "D:THINKTANK_OAUTH_CLIENT_ID=",
+    "D:THINKTANK_OAUTH_CLIENT_SECRET=",
+    "D:THINKTANK_OAUTH_NUID_USERNAME=",
+    "D:THINKTANK_OAUTH_NUID_PASSWORD=",
+    # MongoDB — plm-tcin-mapper tests use mocks; real URL only for functional tests
+    "D:APP__MONGO__URL=mongodb://localhost:27017",
+    "D:APP__MONGO__DATABASE=tcin_mapper_test",
 ]
 
 # ── COVERAGE ──────────────────────────────────────────────────────────────────

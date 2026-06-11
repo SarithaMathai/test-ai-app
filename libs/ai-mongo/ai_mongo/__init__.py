@@ -1,3 +1,3 @@
-from ai_mongo.client import MongoClient
+from ai_mongo.client import MongoClientManager
 
-__all__ = ["MongoClient"]
+__all__ = ["MongoClientManager"]

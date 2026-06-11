@@ -34,8 +34,7 @@ def build_llm_client(settings: Settings) -> LLMClient:
             from ai_openai.client import OpenAIClient  # type: ignore[import]
         except ImportError as exc:
             raise ConfigError(
-                "Provider 'openai' requires ai-openai. "
-                "Add 'ai-openai' to your app's pyproject.toml dependencies."
+                "Provider 'openai' requires ai-openai. Add 'ai-openai' to your app's pyproject.toml dependencies."
             ) from exc
         return OpenAIClient(settings)
 

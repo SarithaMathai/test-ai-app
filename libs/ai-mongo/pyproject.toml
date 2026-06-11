@@ -1,11 +1,12 @@
 [project]
 name = "ai-mongo"
 version = "0.1.0"
-description = "MongoDB client for the AI monorepo — built on pymongo, configured via ai-core Settings"
+description = "Shared MongoDB client (Motor async + PyMongo sync) — install only in apps that need it"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "ai-core",
+    "motor>=3.4.0,<4.0.0",
     "pymongo>=4.7.0,<5.0.0",
 ]
 

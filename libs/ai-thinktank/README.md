@@ -1,57 +1,66 @@
 # ai-thinktank
 
-ThinkTank / Model Garden chat completion client for this monorepo.
+ThinkTank / Model Garden LLM client for PLM AI services.
 
-Implements `ai_core.llm.base.LLMClient` — swap to OpenAI by changing one config line.
-Uses `ai-toss-utils` for OAuth token management and authenticated HTTP calls.
+Implements the `LLMClient` interface from `ai-core` for Target's ThinkTank (internal LLM gateway). This is the **single import point** for all ThinkTank connectivity — apps should import from here, not from `ai-toss-utils` directly.
+
+## Public API
+
+```python
+from ai_thinktank import ThinkTankClient, get_bearer_token, AuthenticatedHttpClient
+```
+
+| Export | Source | Purpose |
+|---|---|---|
+| `ThinkTankClient` | `ai_thinktank.client` | High-level LLM chat client |
+| `get_bearer_token` | `ai_toss_utils.token` | Re-exported for convenience |
+| `AuthenticatedHttpClient` | `ai_toss_utils.http` | Re-exported for convenience |
 
 ## Usage
 
 ```python
 from ai_core.config import get_settings
-from ai_core.llm import build_llm_client, ChatMessage, ChatRequest
+from ai_core.llm.base import ChatRequest, ChatMessage
+from ai_thinktank import ThinkTankClient
 
-settings = get_settings()          # llm.provider must be "thinktank"
-client   = build_llm_client(settings)
+settings = get_settings()
+client = ThinkTankClient(settings=settings)
 
-response = client.chat(ChatRequest(
+response = await client.chat(ChatRequest(
     messages=[
-        client.system("You are a helpful assistant."),
-        client.user("Summarise this product description."),
+        ChatMessage(role="system", content="You are a helpful assistant."),
+        ChatMessage(role="user", content="What is the capital of France?"),
     ]
 ))
-print(response.content)
+print(response.content)   # "Paris"
+print(response.model)     # e.g. "gpt-4o"
+print(response.usage)     # {"prompt_tokens": 20, "completion_tokens": 5, ...}
 ```
 
-## ThinkTank vs OpenAI schema differences
+## Configuration
 
-| Field | OpenAI | ThinkTank |
+`ThinkTankClient` is configured entirely through `ai-core`'s `Settings`:
+
+| Setting | Env var override | Default |
 |---|---|---|
-| Token limit | `max_tokens` | `max_new_tokens` |
-| Extra params | — | `top_p`, `frequency_penalty`, `presence_penalty`, `timeout` |
+| `toss.thinktank_url` | `THINKTANK_URL` | — |
+| `toss.api_key` | `THINKTANK_API_KEY` | `""` |
+| `toss.gateway_api_key` | `THINKTANK_GATEWAY_API_KEY` | `""` |
+| `toss.oauth_client_id` | `THINKTANK_OAUTH_CLIENT_ID` | `""` |
+| `llm.model` | `LLM_MODEL` | `"gpt-4o"` |
+| `llm.max_tokens` | `LLM_MAX_TOKENS` | `2048` |
+| `llm.temperature` | `LLM_TEMPERATURE` | `0.0` |
 
-## Required config (`config/base.yaml`)
+## Running tests
 
-```yaml
-llm:
-  provider: "thinktank"
-  model: "llama-3-70b"          # or whatever model is deployed
-
-toss:
-  base_url: "https://api.thinktank.example.com"
-  chat_endpoint: "/gen_ai_model_requests/v1/chat/completions"
-  tenant_id: "your-tenant-id"
+```bash
+make test-ai-thinktank
+# or
+uv run pytest libs/ai-thinktank/tests/unit -v
 ```
 
-## Required secrets (`.env`)
+Integration tests require live ThinkTank credentials:
 
-```
-# Option A — API key (external / dev)
-THINKTANK_API_KEY=...
-
-# Option B — OAuth (Target internal)
-THINKTANK_OAUTH_CLIENT_ID=...
-THINKTANK_OAUTH_CLIENT_SECRET=...
-THINKTANK_OAUTH_NUID_USERNAME=...
-THINKTANK_OAUTH_NUID_PASSWORD=...
+```bash
+uv run pytest libs/ai-thinktank/tests/integration -v
 ```

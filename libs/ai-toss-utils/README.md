@@ -1,62 +1,69 @@
 # ai-toss-utils
 
-OAuth token management and authenticated HTTP client for Target's ThinkTank
-and Model Garden APIs.
+OAuth token management and authenticated HTTP client for Target AI platform services.
 
-## What's in here
+Handles authentication with ThinkTank/Model Garden APIs using two strategies:
+1. **pyOauthTarget** — Target's internal OAuth client (preferred in TAP environments)
+2. **Static API key fallback** — when `THINKTANK_API_KEY` is set (useful for local dev)
 
-| Module | Purpose |
-|---|---|
-| `ai_toss_utils.token` | `get_bearer_token(settings)` — OAuth or API key fallback |
-| `ai_toss_utils.http` | `AuthenticatedHttpClient` — retrying HTTP client with auto token injection |
+## Public API
 
-## Authentication strategies
+```python
+from ai_toss_utils import AuthenticatedHttpClient, get_bearer_token
+```
 
-`get_bearer_token` tries strategies in order:
+## `get_bearer_token(settings)`
 
-1. **OAuth** (Target internal) — uses `pyOauthTarget` + `tgt_certs`.  
-   Requires `THINKTANK_OAUTH_CLIENT_ID` and `THINKTANK_OAUTH_CLIENT_SECRET`.  
-   Install with: `uv add "ai-toss-utils[target-auth]"`
-
-2. **API key fallback** — returns `Bearer {THINKTANK_API_KEY}`.  
-   Works in any environment without Target-internal packages.
-
-## Usage
+Returns a Bearer token string using the configured auth strategy.
 
 ```python
 from ai_core.config import get_settings
-from ai_toss_utils.token import get_bearer_token
-from ai_toss_utils.http import AuthenticatedHttpClient
+from ai_toss_utils import get_bearer_token
 
-settings = get_settings()
-
-# Token only
-token = get_bearer_token(settings)   # "Bearer eyJ..."
-
-# Full HTTP client (auto-refreshes token per request)
-client = AuthenticatedHttpClient.from_settings(settings)
-response = client.call_chat_completions({
-    "model": "llama-3-70b",
-    "messages": [{"role": "user", "content": "Hello"}],
-})
+token = get_bearer_token(settings=get_settings())
+# Returns e.g. "eyJhbGci..."
 ```
 
-## Required env vars
+**Auth priority:**
+1. `pyOauthTarget` is available AND OAuth credentials set → exchange client credentials.
+2. `tgt-certs` or `THINKTANK_API_KEY` set → return the API key directly.
+3. Empty string (no auth — dev only).
 
-| Variable | Required for |
+## `AuthenticatedHttpClient`
+
+Wraps `requests.Session` with:
+- Automatic Bearer token injection per request.
+- Optional `x-api-key` header (`gateway_api_key`).
+- Retry-with-backoff on 5xx and network errors (via tenacity).
+- `x-tgt-application` and `tenant-id` headers.
+
+```python
+from ai_core.config import get_settings
+from ai_toss_utils import AuthenticatedHttpClient
+
+client = AuthenticatedHttpClient(settings=get_settings())
+response = client.call_chat_completions(payload={"messages": [...]})
+```
+
+## Headers sent on every request
+
+| Header | Value source |
 |---|---|
-| `THINKTANK_API_KEY` | API key auth (strategy 2) |
-| `THINKTANK_OAUTH_CLIENT_ID` | OAuth (strategy 1) |
-| `THINKTANK_OAUTH_CLIENT_SECRET` | OAuth (strategy 1) |
-| `THINKTANK_OAUTH_NUID_USERNAME` | OAuth (strategy 1) |
-| `THINKTANK_OAUTH_NUID_PASSWORD` | OAuth (strategy 1) |
+| `Content-Type` | `application/json` |
+| `Authorization` | `Bearer <token>` |
+| `x-tgt-application` | `settings.toss.application_name` |
+| `tenant-id` | `settings.toss.tenant_id` |
+| `x-api-key` | `settings.toss.gateway_api_key` (if set) |
 
-Config (non-secret, in `base.yaml`):
-```yaml
-toss:
-  base_url: "https://api.thinktank.example.com"
-  chat_endpoint: "/gen_ai_model_requests/v1/chat/completions"
-  tenant_id: ""
-  token_env_var: "THINKTANK_TOKEN"
-  is_prod: "false"
+## Running tests
+
+```bash
+make test-ai-toss-utils
+# or
+uv run pytest libs/ai-toss-utils/tests/unit -v
+```
+
+Integration tests require live credentials:
+```bash
+uv run pytest libs/ai-toss-utils/tests/integration -v
 ```

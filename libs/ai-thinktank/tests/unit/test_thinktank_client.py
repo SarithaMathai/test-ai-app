@@ -7,6 +7,8 @@ from ai_core.config import load_settings
 from ai_core.exceptions import LLMError
 from ai_core.llm.base import ChatMessage, ChatRequest
 
+pytestmark = pytest.mark.unit
+
 
 def _settings(tmp_path, extra=None):
     import yaml
@@ -21,11 +23,10 @@ def _settings(tmp_path, extra=None):
 
 def _make_client(settings):
     mock_http = MagicMock()
-    with patch("ai_toss_utils.http.AuthenticatedHttpClient.from_settings", return_value=mock_http):
+    with patch("ai_core.http.AuthenticatedHttpClient", return_value=mock_http):
         from ai_thinktank.client import ThinkTankClient
 
         client = ThinkTankClient(settings)
-        client._http = mock_http
     return client, mock_http
 
 
@@ -51,7 +52,7 @@ def test_chat_returns_response(tmp_path):
     settings = _settings(tmp_path)
     client, mock_http = _make_client(settings)
 
-    mock_http.call_chat_completions.return_value = {
+    mock_http.post.return_value = {
         "model": "llama-3-70b",
         "choices": [{"finish_reason": "stop", "message": {"content": "4"}}],
         "usage": {"prompt_tokens": 20, "completion_tokens": 3},
@@ -77,14 +78,14 @@ def test_chat_uses_max_tokens(tmp_path):
     """Verify the payload uses max_tokens (standard OpenAI-compatible field)."""
     settings = _settings(tmp_path)
     client, mock_http = _make_client(settings)
-    mock_http.call_chat_completions.return_value = {
+    mock_http.post.return_value = {
         "choices": [{"finish_reason": "stop", "message": {"content": "ok"}}],
         "usage": {},
     }
 
     client.chat(ChatRequest(messages=[ChatMessage("user", "hi")], max_tokens=512))
 
-    call_payload = mock_http.call_chat_completions.call_args[0][0]
+    call_payload = mock_http.post.call_args[0][1]
     assert "max_tokens" in call_payload
     assert call_payload["max_tokens"] == 512
     assert "max_new_tokens" not in call_payload
@@ -93,14 +94,14 @@ def test_chat_uses_max_tokens(tmp_path):
 def test_chat_request_model_overrides_config(tmp_path):
     settings = _settings(tmp_path)
     client, mock_http = _make_client(settings)
-    mock_http.call_chat_completions.return_value = {
+    mock_http.post.return_value = {
         "choices": [{"finish_reason": "stop", "message": {"content": "ok"}}],
         "usage": {},
     }
 
     client.chat(ChatRequest(messages=[ChatMessage("user", "hi")], model="gpt-4o"))
 
-    payload = mock_http.call_chat_completions.call_args[0][0]
+    payload = mock_http.post.call_args[0][1]
     assert payload["model"] == "gpt-4o"
 
 
@@ -110,7 +111,7 @@ def test_chat_request_model_overrides_config(tmp_path):
 def test_empty_choices_raises_llm_error(tmp_path):
     settings = _settings(tmp_path)
     client, mock_http = _make_client(settings)
-    mock_http.call_chat_completions.return_value = {"choices": [], "usage": {}}
+    mock_http.post.return_value = {"choices": [], "usage": {}}
 
     with pytest.raises(LLMError, match="empty choices"):
         client.chat(ChatRequest(messages=[ChatMessage("user", "hi")]))
@@ -119,7 +120,7 @@ def test_empty_choices_raises_llm_error(tmp_path):
 def test_http_failure_raises_llm_error(tmp_path):
     settings = _settings(tmp_path)
     client, mock_http = _make_client(settings)
-    mock_http.call_chat_completions.side_effect = RuntimeError("connection refused")
+    mock_http.post.side_effect = RuntimeError("connection refused")
 
     with pytest.raises(LLMError, match="ThinkTank API call failed"):
         client.chat(ChatRequest(messages=[ChatMessage("user", "hi")]))

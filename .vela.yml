@@ -1,0 +1,341 @@
+---
+version: "1"
+
+# ── Reusable anchors ──────────────────────────────────────────────────────────
+x-uv-python-image: &uv-python-image
+  image: docker.target.com/iam/python/tgt-uv:3.12-slim-bullseye
+  environment:
+    VIRTUAL_ENV: /app/.venv
+
+x-kaniko-image: &kaniko-image docker.target.com/vela-plugins/kaniko:v0.19.2-1
+
+# ── Rulesets ──────────────────────────────────────────────────────────────────
+# Run checks on every PR targeting main, every push to main, and every release tag.
+x-validate-ruleset: &validate-ruleset
+  eval: >-
+    (VELA_BUILD_EVENT == 'push' && VELA_BUILD_BRANCH == 'main') ||
+    (VELA_BUILD_EVENT == 'push' && VELA_BUILD_BRANCH matches '^feat/') ||
+    (VELA_BUILD_EVENT == 'push' && VELA_BUILD_BRANCH matches '^hotfix/') ||
+    (VELA_BUILD_EVENT == 'pull_request' && VELA_PULL_REQUEST_TARGET == 'main') ||
+    (VELA_BUILD_EVENT == 'tag' && VELA_BUILD_TAG matches '^v[0-9].*')
+
+# Push to main → b<build>-<sha8>
+x-dev-ruleset: &dev-ruleset
+  event: [push]
+  branch: [main]
+
+# Push to feat/* → feat<build>-<sha8>
+x-feat-ruleset: &feat-ruleset
+  event: [push]
+  branch: ["feat/*"]
+
+# Push to hotfix/* → b<build>-<sha8>-hot
+x-hotfix-ruleset: &hotfix-ruleset
+  event: [push]
+  branch: ["hotfix/*"]
+
+# RC tag (e.g. v0.0.622-rc) → stage
+x-stage-ruleset: &stage-ruleset
+  event: [tag]
+  tag: ["v*-rc"]
+
+# Release tag (e.g. v0.0.621) → prod
+x-prod-ruleset: &prod-ruleset
+  event: [tag]
+  tag: ["v[0-9]*"]
+
+# Build Docker on any push that produces an image OR any release/rc tag.
+x-kaniko-auth-ruleset: &kaniko-auth-ruleset
+  eval: >-
+    (VELA_BUILD_EVENT == 'push' && VELA_BUILD_BRANCH == 'main') ||
+    (VELA_BUILD_EVENT == 'push' && VELA_BUILD_BRANCH matches '^feat/') ||
+    (VELA_BUILD_EVENT == 'push' && VELA_BUILD_BRANCH matches '^hotfix/') ||
+    (VELA_BUILD_EVENT == 'tag' && VELA_BUILD_TAG matches '^v[0-9].*')
+
+# ── Stages ────────────────────────────────────────────────────────────────────
+stages:
+  # ── 1. Install ────────────────────────────────────────────────────────────
+  install:
+    steps:
+      - name: install
+        <<: *uv-python-image
+        commands:
+          - uv sync --no-install-project --all-packages --all-groups
+        ruleset: *validate-ruleset
+
+  # ── 2. Lint (parallel with unit tests) ────────────────────────────────────
+  check-lint:
+    needs: [install]
+    steps:
+      - name: lint
+        <<: *uv-python-image
+        commands:
+          - uv run --no-sync ruff check .
+          - uv run --no-sync ruff format --check .
+        ruleset: *validate-ruleset
+
+  # ── 3. Unit tests (parallel with lint) ────────────────────────────────────
+  check-unit-test:
+    needs: [install]
+    steps:
+      - name: unit-tests
+        <<: *uv-python-image
+        commands:
+          - uv run --no-sync pytest -m unit -v
+        ruleset: *validate-ruleset
+
+  # ── 4. Docker: PR dry-run (validate Dockerfile, no push) ──────────────────
+  docker-build-pr:
+    needs: [install, check-lint, check-unit-test]
+    steps:
+      - name: populate_kaniko_credentials
+        image: docker.target.com/iam/ci/vela-plugins/artifactory-managed-auth:v4.0.3
+        id_request: true
+        parameters:
+          package_types: ["docker"]
+        ruleset:
+          event: [pull_request]
+
+      # plm-think-tank-ai — PR dry-run
+      - name: docker-dry-run-pr-plm-think-tank-ai
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-think-tank-ai
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-think-tank-ai"
+          dry_run: true
+          tags:
+            - "pr${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset:
+          event: [pull_request]
+
+      # plm-tcin-mapper — PR dry-run
+      - name: docker-dry-run-pr-plm-tcin-mapper
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-tcin-mapper"
+          dry_run: true
+          tags:
+            - "pr${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset:
+          event: [pull_request]
+
+  # ── 5. Docker: build + push ───────────────────────────────────────────────
+  docker-build:
+    needs: [install, check-lint, check-unit-test]
+    steps:
+      - name: populate_kaniko_credentials
+        image: docker.target.com/iam/ci/vela-plugins/artifactory-managed-auth:v4.0.3
+        id_request: true
+        parameters:
+          package_types: ["docker"]
+        ruleset: *kaniko-auth-ruleset
+
+      # ── plm-think-tank-ai ──────────────────────────────────────────────────
+      - name: docker-build-dev-plm-think-tank-ai
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-think-tank-ai
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-think-tank-ai"
+          tags:
+            - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset: *dev-ruleset
+
+      - name: docker-build-feat-plm-think-tank-ai
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-think-tank-ai
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-think-tank-ai"
+          tags:
+            - "feat${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset: *feat-ruleset
+
+      - name: docker-build-hotfix-plm-think-tank-ai
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-think-tank-ai
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-think-tank-ai"
+          tags:
+            - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}-hot"
+        ruleset: *hotfix-ruleset
+
+      - name: docker-build-stage-plm-think-tank-ai
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-think-tank-ai
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-think-tank-ai"
+          tags:
+            - "${VELA_BUILD_TAG}"
+        ruleset: *stage-ruleset
+
+      - name: docker-build-prod-plm-think-tank-ai
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-think-tank-ai
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-think-tank-ai"
+          tags:
+            - "${VELA_BUILD_TAG}"
+            - latest
+        ruleset: *prod-ruleset
+
+      # ── plm-tcin-mapper ────────────────────────────────────────────────────
+      - name: docker-build-dev-plm-tcin-mapper
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-tcin-mapper"
+          tags:
+            - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset: *dev-ruleset
+
+      - name: docker-build-feat-plm-tcin-mapper
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-tcin-mapper"
+          tags:
+            - "feat${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset: *feat-ruleset
+
+      - name: docker-build-hotfix-plm-tcin-mapper
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-tcin-mapper"
+          tags:
+            - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}-hot"
+        ruleset: *hotfix-ruleset
+
+      - name: docker-build-stage-plm-tcin-mapper
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-tcin-mapper"
+          tags:
+            - "${VELA_BUILD_TAG}"
+        ruleset: *stage-ruleset
+
+      - name: docker-build-prod-plm-tcin-mapper
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper
+          dockerfile: Dockerfile
+          build_args:
+            - "APP_PACKAGE=plm-tcin-mapper"
+          tags:
+            - "${VELA_BUILD_TAG}"
+            - latest
+        ruleset: *prod-ruleset
+
+  # ── 6. TAP deploy ─────────────────────────────────────────────────────────
+  tap-deploy:
+    needs: [docker-build]
+    steps:
+      # plm-think-tank-ai deploys
+      - name: tap-deploy-dev-plm-think-tank-ai
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-think-tank-ai -e=dev -t="b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}" --force --wait
+        ruleset: *dev-ruleset
+
+      - name: tap-deploy-stage-plm-think-tank-ai
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-think-tank-ai -e=stage -t="${VELA_BUILD_TAG}" --force --wait
+        ruleset: *stage-ruleset
+
+      - name: tap-deploy-prod-plm-think-tank-ai
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-think-tank-ai -e=prod -t="${VELA_BUILD_TAG}" --force --wait
+        ruleset: *prod-ruleset
+
+      # plm-tcin-mapper deploys
+      - name: tap-deploy-dev-plm-tcin-mapper
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-tcin-mapper -e=dev -t="b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}" --force --wait
+        ruleset: *dev-ruleset
+
+      - name: tap-deploy-stage-plm-tcin-mapper
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-tcin-mapper -e=stage -t="${VELA_BUILD_TAG}" --force --wait
+        ruleset: *stage-ruleset
+
+      - name: tap-deploy-prod-plm-tcin-mapper
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-tcin-mapper -e=prod -t="${VELA_BUILD_TAG}" --force --wait
+        ruleset: *prod-ruleset
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+secrets:
+  - origin:
+      name: tsm
+      image: docker.target.com/iam/ci/tsm-plugin:v0.4.1
+      id_request: true
+      parameters:
+        items:
+          - source: plmtools/tap_token
+            target:
+              - tap_token
+              - TAPITOKEN

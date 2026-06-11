@@ -1,19 +1,28 @@
-# AI monorepo — single parameterized image for all HTTP service apps.
+# PLM AI Apps — single parameterized image for all HTTP service apps.
 # Selects the app at build time via APP_PACKAGE build arg.
 #
 # Base image: https://github.com/target-corp/python-docker-uv
 #   Provides Python 3.12, uv, Target CA certs, Artifactory pip config, non-root user.
+#
+# Usage:
+#   # default (plm-think-tank-ai)
+#   docker build -t plm-ai-apps:local .
+#
+#   # explicit app selection
+#   docker build --build-arg APP_PACKAGE=plm-think-tank-ai -t plm-ai-apps:local .
+#
+# ─────────────────────────────────────────────────────────────────────────────
 FROM docker.target.com/iam/python/tgt-uv:3.12-slim-bullseye
 
 USER root
 
-# curl: health checks
+# curl: health checks / liveness probes.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Target Application Platform runtime connector — wraps entrypoint and injects
-# secrets/config/certificates at /tap/* mount points.
+# Target Application Platform runtime connector — wraps the entrypoint and
+# injects secrets/config/certificates at /tap/* mount points.
 COPY --from=docker.target.com/tap/runtime-connector:v2.5.4 /runtime-connector /runtime-connector
 
 WORKDIR /app
@@ -22,22 +31,25 @@ ENV VIRTUAL_ENV=/app/.venv \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Build arg selects which workspace app to install.
-# Example: --build-arg APP_PACKAGE=spark-think-tank-ai
-ARG APP_PACKAGE="spark-think-tank-ai"
+# Build arg — which workspace app to install.
+# Example: --build-arg APP_PACKAGE=plm-think-tank-ai
+ARG APP_PACKAGE="plm-think-tank-ai"
 
-# Stage 1: copy lockfile and manifests (cached layer for dependency install).
-COPY pyproject.toml uv.lock* .python-version* ./
+# ── Stage 1: dependency install (cached layer) ────────────────────────────────
+# Copy lockfile + root manifests first so Docker can cache the install layer.
+COPY pyproject.toml uv.lock* .python-version* README.md ./
 COPY libs/ ./libs/
 COPY apps/ ./apps/
 
-# Install only the selected app and its transitive deps (no dev/test/lint).
-RUN uv sync --frozen --package "${APP_PACKAGE}" \
-        --no-group dev --no-group test --no-group lint
+# Install only the selected app and its transitive runtime deps.
+# --package scopes to one app; dev/test/lint groups are excluded by default.
+RUN uv sync --frozen --package "${APP_PACKAGE}"
 
-# Stage 2: runtime files.
+# ── Stage 2: application source + runtime files ───────────────────────────────
 # Per-app entrypoint lives alongside the app source.
 COPY apps/${APP_PACKAGE}/entrypoint.sh ./entrypoint.sh
+# Bake non-secret YAML config defaults into the image.
+# TAP mounts /tap/config at deploy time to override (see entrypoint.sh).
 COPY config/ /app/config/
 
 RUN mkdir -p /tap/secret /tap/config /tap/certificates /tap/secret/restricted && \

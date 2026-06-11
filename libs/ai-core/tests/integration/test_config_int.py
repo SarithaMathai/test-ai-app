@@ -1,7 +1,7 @@
 """Integration test: load the real config/base.yaml and validate all sections.
 
 Does NOT require external services — reads only the checked-in YAML file.
-Marks: integration (config-layer contract test).
+Marks: integration (config-layer contract test — no live network).
 """
 
 from pathlib import Path
@@ -31,25 +31,25 @@ def test_real_base_yaml_loads(real_config_dir):
     assert settings.llm.provider in ("thinktank", "openai", "none")
 
 
-def test_toss_base_url_is_thinktank(real_config_dir):
+def test_thinktank_base_url_is_https(real_config_dir):
     from ai_core.config import load_settings
 
     settings = load_settings()
-    assert "thinktank" in settings.toss.base_url.lower()
+    assert settings.thinktank.base_url.startswith("https://")
 
 
-def test_toss_chat_endpoint_present(real_config_dir):
+def test_thinktank_chat_endpoint_present(real_config_dir):
     from ai_core.config import load_settings
 
     settings = load_settings()
-    assert settings.toss.chat_endpoint.startswith("/")
+    assert settings.thinktank.chat_endpoint.startswith("/")
 
 
-def test_toss_app_name_set(real_config_dir):
+def test_thinktank_app_name_set(real_config_dir):
     from ai_core.config import load_settings
 
     settings = load_settings()
-    assert settings.toss.app_name != ""
+    assert settings.thinktank.app_name != ""
 
 
 def test_all_sections_have_expected_keys(real_config_dir):

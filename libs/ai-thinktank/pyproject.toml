@@ -1,12 +1,11 @@
 [project]
 name = "ai-thinktank"
 version = "0.1.0"
-description = "ThinkTank / Model Garden chat completion client — implements ai-core LLMClient interface"
+description = "ThinkTank / Model Garden chat completion client — implements the ai-core LLMClient interface"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "ai-core",
-    "ai-toss-utils",
 ]
 
 [build-system]
