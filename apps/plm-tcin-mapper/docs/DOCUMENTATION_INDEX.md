@@ -147,6 +147,85 @@
 
 ---
 
+### 🟢 EVALUATION_SYSTEM.md (v2.0 — Gap #4) — **NEW**
+
+**Complete guide to algorithm quality measurement**
+
+**Content:**
+- Overview: v1 vs v2 metrics
+- **Basic Evaluation (v1):**
+  - 4 aggregate metrics with examples
+  - 4 guardrails (when to alert)
+  - Correction rate calculation & interpretation
+- **Extended Evaluation (v2 — Gap #4):**
+  - 20+ detailed metrics organized by dimension
+  - Per-signal accuracy (which scoring signals are weak?)
+  - Per-department performance (which categories are hard?)
+  - LLM impact analysis (is LLM helping or hurting?)
+  - Confidence calibration (are confidence scores trustworthy?)
+- Quick diagnosis guide (symptom → cause → fix)
+- Complete example walkthrough (35% correction rate → investigation)
+- Use case: weekly quality check, A/B testing algorithm changes
+
+**Key Features:**
+- Data flow diagrams showing how metrics are computed
+- Real numbers showing what "good" looks like
+- Step-by-step diagnosis workflows
+- When to use v1 vs v2
+
+**Read this for:** Understanding how to measure algorithm quality, diagnosing problems, making data-driven improvements
+
+---
+
+### 🔴 FEEDBACK_LOOP_SYSTEM.md (v2.0 — Gaps #2, #3, #5, #7) — **NEW**
+
+**Complete guide to closed-loop continuous improvement**
+
+**Content:**
+- Overview: 7-week feedback loop architecture
+- **Phase 1: Feedback Collection (Gaps #1, #5, #6)**
+  - Two paths: Streamlit UI + REST API
+  - Context enrichment (why it matters)
+  - Three feedback actions (CONFIRM/CORRECT/REJECT)
+- **Phase 2: Feedback Analysis (Gap #2 — Alias Mining)**
+  - Pattern extraction from corrections
+  - Proposal generation (keyword suggestions)
+  - Real example: "rose" keyword patterns across 20 corrections
+  - Approval workflow in UI
+- **Phase 3: Improvement Proposals (Gap #3 — Threshold Tuning)**
+  - 5 types of config proposals
+  - Decision trees for proposal generation
+  - Impact estimation with confidence scores
+  - Approval workflow
+- **Phase 4: Validation (Gap #7 — Shadow Testing)**
+  - Baseline vs shadow batch comparison
+  - Statistical significance testing (p-values)
+  - Recommendation logic (APPROVE/REVIEW/REJECT)
+  - Full comparison results storage
+- **Phase 5: Deployment**
+  - Applying approved changes
+  - Config updates (base.yaml + alias_overrides.yaml)
+  - Rollback plans
+- **Complete End-to-End Example**
+  - Week-by-week walkthrough
+  - Real API calls
+  - Before/after metrics
+- **Operational Workflows**
+  - Daily, weekly, monthly cadence
+  - Feedback quality factors
+  - Rollback procedures
+
+**Key Features:**
+- Full data structures with examples
+- API endpoints for each phase
+- UI workflows (Streamlit dashboards)
+- Statistical validation concepts
+- Key insights & best practices
+
+**Read this for:** Understanding complete improvement loop, running feedback analysis, deploying changes safely
+
+---
+
 ## 🗂️ How These Documents Relate
 
 ```
