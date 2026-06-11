@@ -260,3 +260,32 @@ class ThresholdProposalApplyResponse(BaseModel):
     status: str
     proposal_id: str
     message: str
+
+
+# ── Shadow Mode Comparison ────────────────────────────────────────────────
+
+class ShadowMetricComparisonItem(BaseModel):
+    metric: str
+    baseline: str
+    shadow: str
+    delta: str
+    pct_change: str
+    is_improvement: bool
+
+
+class ShadowComparisonData(BaseModel):
+    baseline_batch_id: str
+    shadow_batch_id: str
+    total_baseline: int
+    total_shadow: int
+    metric_comparisons: list[ShadowMetricComparisonItem]
+    overall_improvement: str
+    p_value: str
+    is_statistically_significant: bool
+    recommendation: str
+
+
+class ShadowComparisonResponse(BaseModel):
+    status: str
+    message: str
+    comparison: ShadowComparisonData | None

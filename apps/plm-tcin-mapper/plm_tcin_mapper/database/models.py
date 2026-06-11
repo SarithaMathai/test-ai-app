@@ -283,6 +283,42 @@ class ExtendedEvalRun(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+# ─── Collection: shadow_comparisons ──────────────────────────────────────
+
+class ShadowMetricComparison(BaseModel):
+    metric: str
+    baseline_value: float
+    shadow_value: float
+    delta: float
+    pct_change: float
+    is_improvement: bool
+
+
+class ShadowComparisonResult(BaseModel):
+    id: str = Field(default_factory=_new_id, alias="_id")
+    baseline_batch_id: str
+    shadow_batch_id: str
+
+    total_baseline_mappings: int
+    total_shadow_mappings: int
+
+    metric_comparisons: list[ShadowMetricComparison] = []
+
+    confidence_improvement: float = 0.0
+    correction_rate_improvement: float = 0.0
+    pct_high_improvement: float = 0.0
+
+    overall_improvement_score: float = 0.0
+    p_value: float = 1.0
+    is_statistically_significant: bool = False
+
+    recommendation: str = ""
+
+    created_at: datetime = Field(default_factory=_utcnow)
+
+    model_config = {"populate_by_name": True}
+
+
 # ─── Collection: threshold_proposals ──────────────────────────────────────
 
 class ThresholdChange(BaseModel):
