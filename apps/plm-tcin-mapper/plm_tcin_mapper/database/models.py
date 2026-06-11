@@ -50,6 +50,19 @@ class MatchRound(StrEnum):
     LLM = "LLM"
 
 
+class ProposalStatus(StrEnum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    APPLIED = "APPLIED"
+
+
+class ProposalType(StrEnum):
+    ALIAS_ADD = "ALIAS_ADD"
+    ALIAS_MOVE = "ALIAS_MOVE"
+    THRESHOLD_ADJUST = "THRESHOLD_ADJUST"
+
+
 # ─── Collection: tcin_records ─────────────────────────────────────────────────
 
 class TcinRecord(BaseModel):
@@ -208,5 +221,29 @@ class LLMCallRecord(BaseModel):
     raw_response: str | None = None
 
     created_at: datetime = Field(default_factory=_utcnow)
+
+    model_config = {"populate_by_name": True}
+
+
+# ─── Collection: alias_mining_proposals ─────────────────────────────────
+
+class AliasMiningProposal(BaseModel):
+    id: str = Field(default_factory=_new_id, alias="_id")
+    proposal_type: ProposalType
+    status: ProposalStatus = ProposalStatus.PENDING
+
+    base_color: str
+    keyword: str
+    suggested_base_color: str | None = None
+
+    frequency: int
+    confidence: float
+    supporting_feedback_ids: list[str] = []
+
+    rationale: str
+    estimated_impact: str | None = None
+
+    created_at: datetime = Field(default_factory=_utcnow)
+    applied_at: datetime | None = None
 
     model_config = {"populate_by_name": True}

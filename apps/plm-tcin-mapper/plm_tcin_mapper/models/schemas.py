@@ -111,3 +111,48 @@ class HealthResponse(BaseModel):
     llm_provider: str
     llm_model: str
     mongo_ok: bool
+
+
+# ── Alias Mining ──────────────────────────────────────────────────────────
+
+class AliasMiningProposalItem(BaseModel):
+    id: str
+    proposal_type: str
+    status: str
+    base_color: str
+    keyword: str
+    suggested_base_color: str | None = None
+    frequency: int
+    confidence: float
+    rationale: str
+    estimated_impact: str | None = None
+    created_at: str
+
+
+class AliasMiningAnalyzeRequest(BaseModel):
+    min_frequency: int = 3
+    min_confidence: float = 0.60
+    limit: int | None = None
+
+
+class AliasMiningAnalyzeResponse(BaseModel):
+    status: str
+    proposals_generated: int
+    total_feedback_analyzed: int
+    proposals: list[AliasMiningProposalItem]
+
+
+class AliasMiningProposalsResponse(BaseModel):
+    total: int
+    proposals: list[AliasMiningProposalItem]
+
+
+class AliasMiningApplyRequest(BaseModel):
+    reviewer: str | None = None
+    notes: str | None = None
+
+
+class AliasMiningApplyResponse(BaseModel):
+    status: str
+    proposal_id: str
+    message: str

@@ -11,6 +11,8 @@ from ai_core.llm.factory import build_llm_client
 from ai_mongo import MongoClientManager
 from fastapi import Depends
 
+from plm_tcin_mapper.matching.color_keywords import get_merged_keyword_map
+from plm_tcin_mapper.services.alias_mining_service import AliasMiningService
 from plm_tcin_mapper.services.eval_service import EvalService
 from plm_tcin_mapper.services.feedback_service import FeedbackService
 from plm_tcin_mapper.services.ingest_service import IngestionService
@@ -72,6 +74,13 @@ def get_feedback_service(
     return FeedbackService(mongo=mongo)
 
 
+def get_alias_mining_service(
+    mongo: Annotated[MongoClientManager, Depends(get_mongo)],
+) -> AliasMiningService:
+    _, keyword_to_base = get_merged_keyword_map()
+    return AliasMiningService(mongo=mongo, keyword_map=keyword_to_base)
+
+
 # Type aliases for cleaner route signatures
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
@@ -80,3 +89,4 @@ MappingServiceDep = Annotated[MappingService, Depends(get_mapping_service)]
 IngestionServiceDep = Annotated[IngestionService, Depends(get_ingest_service)]
 EvalServiceDep = Annotated[EvalService, Depends(get_eval_service)]
 FeedbackServiceDep = Annotated[FeedbackService, Depends(get_feedback_service)]
+AliasMiningServiceDep = Annotated[AliasMiningService, Depends(get_alias_mining_service)]
