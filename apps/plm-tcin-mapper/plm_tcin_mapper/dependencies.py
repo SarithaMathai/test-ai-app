@@ -12,6 +12,7 @@ from ai_mongo import MongoClientManager
 from fastapi import Depends
 
 from plm_tcin_mapper.matching.color_keywords import get_merged_keyword_map
+from plm_tcin_mapper.pipeline.threshold_tuner import ThresholdTuner
 from plm_tcin_mapper.services.alias_mining_service import AliasMiningService
 from plm_tcin_mapper.services.eval_service import EvalService
 from plm_tcin_mapper.services.feedback_service import FeedbackService
@@ -81,6 +82,12 @@ def get_alias_mining_service(
     return AliasMiningService(mongo=mongo, keyword_map=keyword_to_base)
 
 
+def get_threshold_tuner_service(
+    mongo: Annotated[MongoClientManager, Depends(get_mongo)],
+) -> ThresholdTuner:
+    return ThresholdTuner(mongo=mongo)
+
+
 # Type aliases for cleaner route signatures
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
 LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
@@ -90,3 +97,4 @@ IngestionServiceDep = Annotated[IngestionService, Depends(get_ingest_service)]
 EvalServiceDep = Annotated[EvalService, Depends(get_eval_service)]
 FeedbackServiceDep = Annotated[FeedbackService, Depends(get_feedback_service)]
 AliasMiningServiceDep = Annotated[AliasMiningService, Depends(get_alias_mining_service)]
+ThresholdTunerDep = Annotated[ThresholdTuner, Depends(get_threshold_tuner_service)]

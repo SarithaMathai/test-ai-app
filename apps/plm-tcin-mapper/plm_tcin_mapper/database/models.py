@@ -283,6 +283,44 @@ class ExtendedEvalRun(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+# ─── Collection: threshold_proposals ──────────────────────────────────────
+
+class ThresholdChange(BaseModel):
+    parameter: str
+    current_value: float
+    proposed_value: float
+    delta: float
+
+
+class ImpactEstimate(BaseModel):
+    metric: str
+    current_value: float
+    estimated_value: float
+    improvement: float
+
+
+class ThresholdProposal(BaseModel):
+    id: str = Field(default_factory=_new_id, alias="_id")
+    status: ProposalStatus = ProposalStatus.PENDING
+
+    eval_run_id: str
+    proposal_type: str
+    rationale: str
+
+    changes: list[ThresholdChange] = []
+    estimated_impact: list[ImpactEstimate] = []
+    confidence: float = 0.0
+
+    supporting_metrics: dict[str, float] = {}
+    test_batch_id: str | None = None
+    actual_results: dict[str, float] = {}
+
+    created_at: datetime = Field(default_factory=_utcnow)
+    applied_at: datetime | None = None
+
+    model_config = {"populate_by_name": True}
+
+
 # ─── Collection: alias_mining_proposals ─────────────────────────────────
 
 class AliasMiningProposal(BaseModel):

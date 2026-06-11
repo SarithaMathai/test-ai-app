@@ -27,6 +27,7 @@ from plm_tcin_mapper.ui.pages import (  # noqa: E402 — must come after set_pag
     evaluation_metrics,
     llm_quality,
     pid_lookup,
+    threshold_optimizer,
 )
 
 pg = st.navigation(
@@ -37,6 +38,7 @@ pg = st.navigation(
         ],
         "Admin": [
             st.Page(evaluation_metrics.render, title="Evaluation Metrics", icon=":material/analytics:", url_path="evaluation-metrics"),
+            st.Page(threshold_optimizer.render, title="Threshold Optimizer", icon=":material/settings:", url_path="threshold-optimizer"),
             st.Page(alias_mining_dashboard.render, title="Alias Mining", icon=":material/key:", url_path="alias-mining"),
             st.Page(llm_quality.render, title="LLM Quality", icon=":material/psychology:", url_path="llm-quality"),
         ],

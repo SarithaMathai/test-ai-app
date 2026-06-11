@@ -206,3 +206,57 @@ class AliasMiningApplyResponse(BaseModel):
     status: str
     proposal_id: str
     message: str
+
+
+# ── Threshold Tuning ──────────────────────────────────────────────────────
+
+class ThresholdChangeItem(BaseModel):
+    parameter: str
+    current_value: float
+    proposed_value: float
+    delta: float
+
+
+class ImpactEstimateItem(BaseModel):
+    metric: str
+    current_value: float
+    estimated_value: float
+    improvement: float
+
+
+class ThresholdProposalItem(BaseModel):
+    id: str
+    status: str
+    proposal_type: str
+    rationale: str
+    changes: list[ThresholdChangeItem]
+    estimated_impact: list[ImpactEstimateItem]
+    confidence: float
+    created_at: str
+
+
+class ThresholdProposalAnalyzeRequest(BaseModel):
+    pass
+
+
+class ThresholdProposalResponse(BaseModel):
+    status: str
+    message: str
+    proposals_generated: int
+    proposals: list[ThresholdProposalItem]
+
+
+class ThresholdProposalListResponse(BaseModel):
+    total: int
+    proposals: list[ThresholdProposalItem]
+
+
+class ThresholdProposalApplyRequest(BaseModel):
+    reviewer: str | None = None
+    notes: str | None = None
+
+
+class ThresholdProposalApplyResponse(BaseModel):
+    status: str
+    proposal_id: str
+    message: str
