@@ -1,0 +1,325 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-06-11T00:00:00.000Z",
+  "__export_source": "insomnia.desktop",
+  "resources": [
+    {
+      "_id": "wrk_plm_ai_apps",
+      "_type": "workspace",
+      "name": "PLM AI Apps",
+      "description": "Collection for plm-think-tank-ai and plm-tcin-mapper API testing"
+    },
+    {
+      "_id": "env_local_dev",
+      "_type": "environment",
+      "parentId": "wrk_plm_ai_apps",
+      "name": "Local Development",
+      "data": {
+        "think_tank_base_url": "http://localhost:8000",
+        "tcin_mapper_base_url": "http://localhost:8001",
+        "content_spell_check": "Ths is a smple sentense.",
+        "code_for_unit_test": "public class Calculator {\n  public int add(int a, int b) {\n    return a + b;\n  }\n}",
+        "pid": "PID-0L20P5",
+        "department": "214",
+        "chunk": "chunk_01"
+      }
+    },
+    {
+      "_id": "fld_think_tank",
+      "_type": "request_group",
+      "parentId": "wrk_plm_ai_apps",
+      "name": "PLM Think Tank AI",
+      "description": "FastAPI service for PLM UI → ThinkTank LLM prompt operations"
+    },
+    {
+      "_id": "req_think_tank_health",
+      "_type": "request",
+      "parentId": "fld_think_tank",
+      "name": "GET /health",
+      "method": "GET",
+      "url": "{{ think_tank_base_url }}/health",
+      "description": "Health check — returns 200 with service name + version + LLM provider/model"
+    },
+    {
+      "_id": "req_think_tank_prompt_spell_check",
+      "_type": "request",
+      "parentId": "fld_think_tank",
+      "name": "POST /api/v1/prompt - Spell Check",
+      "method": "POST",
+      "url": "{{ think_tank_base_url }}/api/v1/prompt",
+      "description": "Execute a spell-check prompt operation",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"content\": \"{{ content_spell_check }}\",\n  \"operation\": \"spell_check\"\n}"
+      }
+    },
+    {
+      "_id": "req_think_tank_prompt_unit_test",
+      "_type": "request",
+      "parentId": "fld_think_tank",
+      "name": "POST /api/v1/prompt - Unit Test Generation",
+      "method": "POST",
+      "url": "{{ think_tank_base_url }}/api/v1/prompt",
+      "description": "Generate unit tests for the provided code",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"content\": \"{{ code_for_unit_test }}\",\n  \"operation\": \"unit_test\"\n}"
+      }
+    },
+    {
+      "_id": "fld_tcin_mapper",
+      "_type": "request_group",
+      "parentId": "wrk_plm_ai_apps",
+      "name": "PLM TCIN Mapper",
+      "description": "FastAPI service for design impression name → TCIN color mapping"
+    },
+    {
+      "_id": "req_tcin_health",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "GET /health",
+      "method": "GET",
+      "url": "{{ tcin_mapper_base_url }}/health",
+      "description": "Health check — returns LLM provider/model and MongoDB reachability"
+    },
+    {
+      "_id": "req_tcin_ingest_single_chunk",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/ingest - Single Chunk",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/ingest",
+      "description": "Ingest a single chunk of normalized CSV data into MongoDB",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"chunk\": \"{{ chunk }}\"\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_ingest_all",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/ingest - All Chunks",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/ingest",
+      "description": "Ingest all chunks of normalized CSV data into MongoDB",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{}"
+      }
+    },
+    {
+      "_id": "req_tcin_ingest_dry_run",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/ingest - Dry Run",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/ingest",
+      "description": "Dry run of CSV parsing — counts records without writing to MongoDB",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"dry_run\": true\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_mappings_run_pid",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/mappings/run - Single PID",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/mappings/run",
+      "description": "Run the matching pipeline for a single Product ID",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"pid\": \"{{ pid }}\",\n  \"use_llm\": true,\n  \"dry_run\": false\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_mappings_run_department",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/mappings/run - Whole Department",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/mappings/run",
+      "description": "Run the matching pipeline for all PIDs in a department",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"department\": \"{{ department }}\",\n  \"use_llm\": true,\n  \"dry_run\": false\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_mappings_run_all",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/mappings/run - All Unmatched PIDs",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/mappings/run",
+      "description": "Run the matching pipeline for every unmatched PID",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"use_llm\": false,\n  \"dry_run\": false\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_mappings_query",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "GET /api/v1/mappings - Query All",
+      "method": "GET",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/mappings?page=1&page_size=50",
+      "description": "Query all mappings with pagination (page, page_size default 50, max 500)"
+    },
+    {
+      "_id": "req_tcin_mappings_query_by_pid",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "GET /api/v1/mappings - Filter by PID",
+      "method": "GET",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/mappings?pid={{ pid }}&page=1&page_size=50",
+      "description": "Query mappings for a specific Product ID"
+    },
+    {
+      "_id": "req_tcin_mappings_query_by_department",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "GET /api/v1/mappings - Filter by Department",
+      "method": "GET",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/mappings?department={{ department }}&page=1&page_size=50",
+      "description": "Query mappings for a specific department"
+    },
+    {
+      "_id": "req_tcin_feedback_confirm",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/feedback - Confirm",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/feedback",
+      "description": "Submit human feedback to confirm a mapping",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"mapping_id\": \"<mapping-id-from-query-response>\",\n  \"feedback_type\": \"CONFIRM\",\n  \"notes\": \"Mapping looks correct\"\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_feedback_reject",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/feedback - Reject",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/feedback",
+      "description": "Submit human feedback to reject a mapping",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"mapping_id\": \"<mapping-id-from-query-response>\",\n  \"feedback_type\": \"REJECT\",\n  \"notes\": \"TCIN and impression do not match\"\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_feedback_correct",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/feedback - Correct",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/feedback",
+      "description": "Submit human feedback to correct a mapping",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"mapping_id\": \"<mapping-id-from-query-response>\",\n  \"feedback_type\": \"CORRECT\",\n  \"corrected_impression\": \"<correct-impression-name>\",\n  \"notes\": \"The previous impression was incorrect\"\n}"
+      }
+    },
+    {
+      "_id": "req_tcin_eval_run",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "POST /api/v1/eval/run",
+      "method": "POST",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/eval/run",
+      "description": "Compute accuracy metrics and guardrail alerts across all mappings",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{}"
+      }
+    },
+    {
+      "_id": "req_tcin_eval_latest",
+      "_type": "request",
+      "parentId": "fld_tcin_mapper",
+      "name": "GET /api/v1/eval/latest",
+      "method": "GET",
+      "url": "{{ tcin_mapper_base_url }}/api/v1/eval/latest",
+      "description": "Return the most recent evaluation snapshot with metrics"
+    }
+  ]
+}
