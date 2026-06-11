@@ -101,7 +101,7 @@ def _cancel_pid_review_cb(pid: str, key_suffix: str) -> None:
 
 
 def _save_pid_review_cb(pid: str, mapping_docs: list[dict], key_suffix: str, db) -> None:
-    """Save all changed rows from the whole-PID review form."""
+    """Save all changed rows from the whole-PID review form and reload from DB."""
     originals: dict = st.session_state.get(f"_pid_orig_{pid}_{key_suffix}", {})
 
     color_groups: dict[tuple, list[dict]] = defaultdict(list)
@@ -138,6 +138,11 @@ def _save_pid_review_cb(pid: str, mapping_docs: list[dict], key_suffix: str, db)
         parts.append(f"{cleared} cleared")
     label = (", ".join(parts) + f" · {ts}") if parts else f"No changes · {ts}"
     st.session_state[f"_toast_{pid}"] = (label, bool(saved or cleared))
+
+    # Reload mappings from DB to show fresh data
+    if saved or cleared:
+        st.session_state[f"_reload_{pid}"] = True
+        st.rerun()
 
 
 # ─── Display helpers ───────────────────────────────────────────────────────────

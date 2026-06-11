@@ -2,17 +2,22 @@
 
 Sits between the orchestrator and the configured LLM provider (ThinkTank,
 OpenAI, or none). Enriches low-confidence mapping dicts with the LLM's best
-impression pick and updated confidence score.
+impression pick and updated confidence score. Persists all LLM calls to the
+llm_calls collection for auditing, cost tracking, and performance analysis.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any
 
 from ai_core.llm.base import ChatMessage, ChatRequest, LLMClient
+from pymongo.database import Database
+
+from plm_tcin_mapper.database.models import LLMCallRecord
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +46,12 @@ def disambiguate_low_confidence(
     mappings: list[dict],
     cfg: Any,
     llm: LLMClient,
+    db: Database | None = None,
 ) -> list[dict]:
     """For mappings below cfg.matching.llm_fallback_threshold, call the LLM to
     pick the best impression from the available candidates.
+
+    Persists all LLM calls to the llm_calls collection for auditing and cost tracking.
 
     Returns the same list with LLM-enhanced mappings updated in-place.
     """
@@ -57,11 +65,19 @@ def disambiguate_low_confidence(
             continue
 
         try:
+            start_time = time.time()
             result = _call_llm(llm, m, candidates)
+            latency_ms = int((time.time() - start_time) * 1000)
+
             m["matched_impression_name"] = result.chosen_impression
             m["color_confidence"] = result.confidence
             m["llm_rationale"] = result.reasoning
             m["used_llm"] = True
+
+            # Persist LLM call metadata for auditing
+            if db:
+                _persist_llm_call(db, m, result, latency_ms)
+
         except Exception as exc:
             logger.warning("LLM disambiguation failed for pid=%s tcin=%s: %s", m.get("pid"), m.get("tcin_id"), exc)
 
@@ -115,3 +131,24 @@ def _call_llm(llm: LLMClient, m: dict, candidates: list[str]) -> DisambiguationR
         prompt_tokens=response.prompt_tokens,
         response_tokens=response.completion_tokens,
     )
+
+
+def _persist_llm_call(db: Database, m: dict, result: DisambiguationResult, latency_ms: int) -> None:
+    """Write LLM call metadata to the llm_calls collection for auditing and cost tracking."""
+    try:
+        llm_call = LLMCallRecord(
+            mapping_id=m.get("_id"),
+            pid=m.get("pid"),
+            tcin_id=m.get("tcin_id"),
+            model=m.get("llm_model", "unknown"),
+            prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.response_tokens,
+            latency_ms=latency_ms,
+            cost=0.0,  # TODO: compute based on model pricing
+            chosen_impression=result.chosen_impression,
+            confidence=result.confidence,
+            reasoning=result.reasoning,
+        )
+        db["llm_calls"].insert_one(llm_call.model_dump(by_alias=True))
+    except Exception as exc:
+        logger.warning("Failed to persist LLM call for pid=%s: %s", m.get("pid"), exc)

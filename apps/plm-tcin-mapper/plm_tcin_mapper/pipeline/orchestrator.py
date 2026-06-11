@@ -67,6 +67,7 @@ def match_pid(
     use_llm: bool,
     dry_run: bool,
     batch_id: str | None = None,
+    db: Any | None = None,
 ) -> list[Mapping]:
     if not tcin_records or not variation_records:
         return []
@@ -79,7 +80,7 @@ def match_pid(
         try:
             from plm_tcin_mapper.llm.disambiguator import disambiguate_low_confidence
 
-            raw_results = disambiguate_low_confidence(raw_results, cfg, llm=llm)
+            raw_results = disambiguate_low_confidence(raw_results, cfg, llm=llm, db=db)
         except Exception as exc:
             logger.warning("LLM disambiguation failed for pid=%s: %s", pid, exc)
 
@@ -161,6 +162,7 @@ def run_batch(
                 pid, tcin_records, variation_records,
                 cfg, llm, use_llm, dry_run,
                 batch_id=batch_id,
+                db=db,
             )
 
             if not dry_run:

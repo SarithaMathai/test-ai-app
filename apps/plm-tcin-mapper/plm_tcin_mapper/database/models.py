@@ -186,3 +186,27 @@ class EvalRun(BaseModel):
     created_at: datetime = Field(default_factory=_utcnow)
 
     model_config = {"populate_by_name": True}
+
+
+# ─── Collection: llm_calls ──────────────────────────────────────────────────
+
+class LLMCallRecord(BaseModel):
+    id: str = Field(default_factory=_new_id, alias="_id")
+    mapping_id: str | None = None
+    pid: str
+    tcin_id: str
+    model: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    latency_ms: int = 0
+    cost: float = 0.0
+
+    chosen_impression: str
+    confidence: float
+    reasoning: str
+    user_prompt: str | None = None
+    raw_response: str | None = None
+
+    created_at: datetime = Field(default_factory=_utcnow)
+
+    model_config = {"populate_by_name": True}

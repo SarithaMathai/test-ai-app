@@ -231,7 +231,8 @@
         ┌──────────────────────────────────────────────────────┐
         │ STEP 3: LLM Disambiguation (Optional)                │
         │ if use_llm:                                          │
-        │   disambiguate_low_confidence(raw_results, cfg, llm)│
+        │   disambiguate_low_confidence(raw_results, cfg, llm, │
+        │                                 db=db)  ✅ NEW       │
         └──────────────────────────────────────────────────────┘
                               ↓
             threshold = cfg.matching.llm_fallback_threshold
@@ -244,7 +245,7 @@
                 ┌──────────────────────────────────────┐
                 │ Call disambiguator._call_llm()       │
                 │ (plm_tcin_mapper/llm/disambiguator.py│
-                │  99-117)                             │
+                │  99-150) ✅ UPDATED                  │
                 └──────────────────────────────────────┘
                         ↓
                 Build prompt:
@@ -270,8 +271,12 @@
                   response_format="json"
                 ))
                         ↓
-                ⚠️ Gap #1: No llm_calls record written
-                (Just logs the response)
+                ✅ NEW: Persist LLM call to llm_calls collection
+                _persist_llm_call(db, mapping, result, latency_ms):
+                  • Record: mapping_id, pid, tcin_id
+                  • Model metadata: prompt_tokens, completion_tokens
+                  • Latency in ms, cost (placeholder)
+                  • Result: chosen_impression, confidence, reasoning
                         ↓
                 Parse JSON response:
                 {

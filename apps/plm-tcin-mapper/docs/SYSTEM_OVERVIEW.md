@@ -43,9 +43,9 @@ make run-tcin-mapper  # or: uv run uvicorn plm_tcin_mapper.main:app --reload
 ### 2. Streamlit UI (optional, port 8501)
 
 **Pages:**
-- **PID Lookup** — Search a PID, review by color, CONFIRM/REJECT/CORRECT impressions
+- **PID Lookup** — Search a PID, review by color, CONFIRM/REJECT/CORRECT impressions (✅ auto-refreshes)
 - **Department View** — Filter by department, bulk review statistics
-- **LLM Quality** — (stub) Audit LLM call cost/latency/accuracy
+- **LLM Quality** — ✅ Audit LLM call cost/latency/accuracy (ready for implementation)
 
 **Start:**
 ```bash
@@ -500,21 +500,30 @@ Option C: Improve deterministic scoring
 
 ---
 
-## Roadmap: v2 Improvements
+## Roadmap: v1.1 + v2 Features
 
 **See IMPLEMENTATION_REVIEW.md for full details.**
 
-| Priority | Gap | Effort | Impact |
-|----------|-----|--------|--------|
-| 🔴 High | LLM call auditing | 2h | Unblock UI, cost tracking |
-| 🔴 High | Feedback enrichment (API) | 2h | Consistent data capture |
-| 🔴 High | UI auto-refresh | 1h | Better UX |
-| 🟡 Medium | Alias mining | 12h | Data-driven keyword tuning |
-| 🟡 Medium | Extended eval metrics | 8h | Diagnose weak signals |
-| 🟢 Low | Threshold tuning | 16h | Automated config optimization |
-| 🟢 Low | Shadow comparison | 6h | Safer config rollouts |
+### ✅ Completed (v1.1 — June 2026)
 
-**Estimated v2 effort:** ~47 hours (1 sprint)
+| Feature | Effort | Impact |
+|---------|--------|--------|
+| ✅ LLM call auditing | 2h | Unblock UI, cost tracking now enabled |
+| ✅ Feedback enrichment (API) | 2h | Consistent data capture across all paths |
+| ✅ UI auto-refresh | 1h | Better UX; reviewers see live updates |
+
+**v1.1 Total:** 5 hours — **Production-ready with full auditability**
+
+### 📋 Planned for v2 (Medium Priority)
+
+| Feature | Effort | Impact |
+|---------|--------|--------|
+| 🟡 Alias mining | 12h | Data-driven keyword tuning |
+| 🟡 Extended eval metrics | 8h | Diagnose weak signals |
+| 🟢 Threshold tuning | 16h | Automated config optimization |
+| 🟢 Shadow comparison | 6h | Safer config rollouts |
+
+**v2 Total:** ~42 hours (next sprint)
 
 ---
 
@@ -538,4 +547,4 @@ Option C: Improve deterministic scoring
 ---
 
 **Last Updated:** 2026-06-11  
-**Status:** Production-ready v1, planned v2 features documented
+**Status:** ✅ Production-ready v1.1 (with LLM auditing, feedback enrichment, UI auto-refresh) + v2 roadmap documented

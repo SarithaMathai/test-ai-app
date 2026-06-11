@@ -26,6 +26,9 @@ class FeedbackService:
         action = FeedbackAction(request.action)
         was_correct = action == FeedbackAction.CONFIRM
 
+        # Load mapping from DB to enrich feedback context
+        mapping = db[_MAPPING_COL].find_one({"_id": request.mapping_id})
+
         record = FeedbackRecord(
             mapping_id=request.mapping_id,
             pid=request.pid,
@@ -33,6 +36,15 @@ class FeedbackService:
             action=action,
             reviewer=request.reviewer,
             notes=request.notes,
+            # Enrich with context from mapping
+            tcin_color=mapping.get("tcin_color") if mapping else None,
+            tcin_color_name=mapping.get("tcin_color_name") if mapping else None,
+            tcin_size=mapping.get("tcin_size") if mapping else None,
+            department_ids=mapping.get("department_ids", []) if mapping else [],
+            match_round=str(mapping.get("match_round")) if mapping and mapping.get("match_round") else None,
+            original_confidence_tier=str(mapping.get("confidence_tier")) if mapping and mapping.get("confidence_tier") else None,
+            original_impression_name=mapping.get("matched_impression_name") if mapping else None,
+            original_color_confidence=mapping.get("color_confidence") if mapping else None,
             suggested_impression_id=request.suggested_impression_id,
             suggested_impression_name=request.suggested_impression_name,
             was_correct=was_correct,
