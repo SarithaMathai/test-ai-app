@@ -22,7 +22,9 @@ st.set_page_config(
 )
 
 from plm_tcin_mapper.ui.pages import (  # noqa: E402 — must come after set_page_config
+    alias_mining_dashboard,
     department_view,
+    evaluation_metrics,
     llm_quality,
     pid_lookup,
 )
@@ -34,6 +36,8 @@ pg = st.navigation(
             st.Page(department_view.render, title="Department View", icon=":material/category:", url_path="dept-search"),
         ],
         "Admin": [
+            st.Page(evaluation_metrics.render, title="Evaluation Metrics", icon=":material/analytics:", url_path="evaluation-metrics"),
+            st.Page(alias_mining_dashboard.render, title="Alias Mining", icon=":material/key:", url_path="alias-mining"),
             st.Page(llm_quality.render, title="LLM Quality", icon=":material/psychology:", url_path="llm-quality"),
         ],
     }

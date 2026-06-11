@@ -104,6 +104,56 @@ class EvalResponse(BaseModel):
     guardrail_alerts: list[str]
 
 
+# ── Extended Evaluation ───────────────────────────────────────────────────
+
+class SignalAccuracyItem(BaseModel):
+    signal_type: str
+    occurrences: int
+    corrections: int
+    correction_rate: float
+    avg_confidence: float
+    confidence_by_tier: dict[str, int]
+
+
+class DepartmentMetricsItem(BaseModel):
+    department: str
+    total_mappings: int
+    pct_high_confidence: float
+    correction_rate: float
+    avg_confidence: float
+    by_match_round: dict[str, int]
+
+
+class LLMImpactItem(BaseModel):
+    total_llm_calls: int
+    llm_corrected: int
+    llm_correction_rate: float
+    llm_avg_confidence: float
+    deterministic_corrected: int
+    deterministic_correction_rate: float
+    llm_vs_deterministic_improvement: float
+
+
+class ExtendedEvalResponse(BaseModel):
+    id: str
+    total_mappings: int
+    by_status: dict[str, int]
+    by_tier: dict[str, int]
+    pct_high: float
+    pct_good: float
+    pct_fair: float
+    pct_low: float
+    avg_color_confidence: float
+    correction_rate: float
+    per_signal_accuracy: dict[str, SignalAccuracyItem]
+    per_department_metrics: list[DepartmentMetricsItem]
+    llm_impact: LLMImpactItem | None
+    confidence_calibration_error: float
+    high_confidence_actual_correction_rate: float
+    low_confidence_actual_correction_rate: float
+    guardrail_alerts: list[str]
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 class HealthResponse(BaseModel):

@@ -225,6 +225,64 @@ class LLMCallRecord(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+# ─── Collection: extended_eval_runs ──────────────────────────────────────
+
+class SignalAccuracy(BaseModel):
+    signal_type: str
+    occurrences: int
+    corrections: int
+    correction_rate: float
+    avg_confidence: float
+    confidence_by_tier: dict[str, int] = {}
+
+
+class DepartmentMetrics(BaseModel):
+    department: str
+    total_mappings: int
+    pct_high_confidence: float
+    correction_rate: float
+    avg_confidence: float
+    by_match_round: dict[str, int] = {}
+
+
+class LLMImpactMetrics(BaseModel):
+    total_llm_calls: int
+    llm_corrected: int
+    llm_correction_rate: float
+    llm_avg_confidence: float
+    deterministic_corrected: int
+    deterministic_correction_rate: float
+    llm_vs_deterministic_improvement: float
+
+
+class ExtendedEvalRun(BaseModel):
+    id: str = Field(default_factory=_new_id, alias="_id")
+    eval_run_id: str | None = None
+
+    total_mappings: int = 0
+    by_status: dict[str, int] = {}
+    by_tier: dict[str, int] = {}
+    pct_high: float = 0.0
+    pct_good: float = 0.0
+    pct_fair: float = 0.0
+    pct_low: float = 0.0
+    avg_color_confidence: float = 0.0
+    correction_rate: float = 0.0
+
+    per_signal_accuracy: dict[str, SignalAccuracy] = {}
+    per_department_metrics: list[DepartmentMetrics] = []
+    llm_impact: LLMImpactMetrics | None = None
+
+    confidence_calibration_error: float = 0.0
+    high_confidence_actual_correction_rate: float = 0.0
+    low_confidence_actual_correction_rate: float = 0.0
+
+    guardrail_alerts: list[str] = []
+    created_at: datetime = Field(default_factory=_utcnow)
+
+    model_config = {"populate_by_name": True}
+
+
 # ─── Collection: alias_mining_proposals ─────────────────────────────────
 
 class AliasMiningProposal(BaseModel):
