@@ -102,24 +102,33 @@ stages:
         parameters:
           registry: docker.target.com
           repo: docker.target.com/iam/spark/plm-think-tank-ai
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-think-tank-ai"
+          dockerfile: apps/plm-think-tank-ai/Dockerfile
           dry_run: true
           tags:
             - "pr${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
         ruleset:
           event: [pull_request]
 
-      # plm-tcin-mapper — PR dry-run
-      - name: docker-dry-run-pr-plm-tcin-mapper
+      # plm-tcin-mapper-api — PR dry-run
+      - name: docker-dry-run-pr-plm-tcin-mapper-api
         image: *kaniko-image
         parameters:
           registry: docker.target.com
-          repo: docker.target.com/iam/spark/plm-tcin-mapper
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-tcin-mapper"
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-api
+          dockerfile: apps/plm-tcin-mapper-api/Dockerfile
+          dry_run: true
+          tags:
+            - "pr${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset:
+          event: [pull_request]
+
+      # plm-tcin-mapper-client — PR dry-run
+      - name: docker-dry-run-pr-plm-tcin-mapper-client
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-client
+          dockerfile: apps/plm-tcin-mapper-client/Dockerfile
           dry_run: true
           tags:
             - "pr${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
@@ -143,9 +152,7 @@ stages:
         parameters:
           registry: docker.target.com
           repo: docker.target.com/iam/spark/plm-think-tank-ai
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-think-tank-ai"
+          dockerfile: apps/plm-think-tank-ai/Dockerfile
           tags:
             - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
         ruleset: *dev-ruleset
@@ -155,9 +162,7 @@ stages:
         parameters:
           registry: docker.target.com
           repo: docker.target.com/iam/spark/plm-think-tank-ai
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-think-tank-ai"
+          dockerfile: apps/plm-think-tank-ai/Dockerfile
           tags:
             - "feat${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
         ruleset: *feat-ruleset
@@ -167,9 +172,7 @@ stages:
         parameters:
           registry: docker.target.com
           repo: docker.target.com/iam/spark/plm-think-tank-ai
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-think-tank-ai"
+          dockerfile: apps/plm-think-tank-ai/Dockerfile
           tags:
             - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}-hot"
         ruleset: *hotfix-ruleset
@@ -179,9 +182,7 @@ stages:
         parameters:
           registry: docker.target.com
           repo: docker.target.com/iam/spark/plm-think-tank-ai
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-think-tank-ai"
+          dockerfile: apps/plm-think-tank-ai/Dockerfile
           tags:
             - "${VELA_BUILD_TAG}"
         ruleset: *stage-ruleset
@@ -191,71 +192,111 @@ stages:
         parameters:
           registry: docker.target.com
           repo: docker.target.com/iam/spark/plm-think-tank-ai
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-think-tank-ai"
+          dockerfile: apps/plm-think-tank-ai/Dockerfile
           tags:
             - "${VELA_BUILD_TAG}"
             - latest
         ruleset: *prod-ruleset
 
-      # ── plm-tcin-mapper ────────────────────────────────────────────────────
-      - name: docker-build-dev-plm-tcin-mapper
+      # ── plm-tcin-mapper-api ────────────────────────────────────────────────
+      - name: docker-build-dev-plm-tcin-mapper-api
         image: *kaniko-image
         parameters:
           registry: docker.target.com
-          repo: docker.target.com/iam/spark/plm-tcin-mapper
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-tcin-mapper"
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-api
+          dockerfile: apps/plm-tcin-mapper-api/Dockerfile
           tags:
             - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
         ruleset: *dev-ruleset
 
-      - name: docker-build-feat-plm-tcin-mapper
+      - name: docker-build-feat-plm-tcin-mapper-api
         image: *kaniko-image
         parameters:
           registry: docker.target.com
-          repo: docker.target.com/iam/spark/plm-tcin-mapper
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-tcin-mapper"
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-api
+          dockerfile: apps/plm-tcin-mapper-api/Dockerfile
           tags:
             - "feat${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
         ruleset: *feat-ruleset
 
-      - name: docker-build-hotfix-plm-tcin-mapper
+      - name: docker-build-hotfix-plm-tcin-mapper-api
         image: *kaniko-image
         parameters:
           registry: docker.target.com
-          repo: docker.target.com/iam/spark/plm-tcin-mapper
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-tcin-mapper"
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-api
+          dockerfile: apps/plm-tcin-mapper-api/Dockerfile
           tags:
             - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}-hot"
         ruleset: *hotfix-ruleset
 
-      - name: docker-build-stage-plm-tcin-mapper
+      - name: docker-build-stage-plm-tcin-mapper-api
         image: *kaniko-image
         parameters:
           registry: docker.target.com
-          repo: docker.target.com/iam/spark/plm-tcin-mapper
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-tcin-mapper"
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-api
+          dockerfile: apps/plm-tcin-mapper-api/Dockerfile
           tags:
             - "${VELA_BUILD_TAG}"
         ruleset: *stage-ruleset
 
-      - name: docker-build-prod-plm-tcin-mapper
+      - name: docker-build-prod-plm-tcin-mapper-api
         image: *kaniko-image
         parameters:
           registry: docker.target.com
-          repo: docker.target.com/iam/spark/plm-tcin-mapper
-          dockerfile: Dockerfile
-          build_args:
-            - "APP_PACKAGE=plm-tcin-mapper"
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-api
+          dockerfile: apps/plm-tcin-mapper-api/Dockerfile
+          tags:
+            - "${VELA_BUILD_TAG}"
+            - latest
+        ruleset: *prod-ruleset
+
+      # ── plm-tcin-mapper-client ────────────────────────────────────────────
+      - name: docker-build-dev-plm-tcin-mapper-client
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-client
+          dockerfile: apps/plm-tcin-mapper-client/Dockerfile
+          tags:
+            - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset: *dev-ruleset
+
+      - name: docker-build-feat-plm-tcin-mapper-client
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-client
+          dockerfile: apps/plm-tcin-mapper-client/Dockerfile
+          tags:
+            - "feat${BUILD_NUMBER}-${BUILD_COMMIT:0:8}"
+        ruleset: *feat-ruleset
+
+      - name: docker-build-hotfix-plm-tcin-mapper-client
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-client
+          dockerfile: apps/plm-tcin-mapper-client/Dockerfile
+          tags:
+            - "b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}-hot"
+        ruleset: *hotfix-ruleset
+
+      - name: docker-build-stage-plm-tcin-mapper-client
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-client
+          dockerfile: apps/plm-tcin-mapper-client/Dockerfile
+          tags:
+            - "${VELA_BUILD_TAG}"
+        ruleset: *stage-ruleset
+
+      - name: docker-build-prod-plm-tcin-mapper-client
+        image: *kaniko-image
+        parameters:
+          registry: docker.target.com
+          repo: docker.target.com/iam/spark/plm-tcin-mapper-client
+          dockerfile: apps/plm-tcin-mapper-client/Dockerfile
           tags:
             - "${VELA_BUILD_TAG}"
             - latest
@@ -296,35 +337,66 @@ stages:
           - tapctl run pipeline plm-think-tank-ai -e=prod -t="${VELA_BUILD_TAG}" --force --wait
         ruleset: *prod-ruleset
 
-      # plm-tcin-mapper deploys
-      - name: tap-deploy-dev-plm-tcin-mapper
+      # plm-tcin-mapper-api deploys
+      - name: tap-deploy-dev-plm-tcin-mapper-api
         image: docker.target.com/tap/vela-tapctl:latest
         secrets:
           - source: tap_token
             target: tapitoken
         commands:
           - sleep 10
-          - tapctl run pipeline plm-tcin-mapper -e=dev -t="b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}" --force --wait
+          - tapctl run pipeline plm-tcin-mapper-api -e=dev -t="b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}" --force --wait
         ruleset: *dev-ruleset
 
-      - name: tap-deploy-stage-plm-tcin-mapper
+      - name: tap-deploy-stage-plm-tcin-mapper-api
         image: docker.target.com/tap/vela-tapctl:latest
         secrets:
           - source: tap_token
             target: tapitoken
         commands:
           - sleep 10
-          - tapctl run pipeline plm-tcin-mapper -e=stage -t="${VELA_BUILD_TAG}" --force --wait
+          - tapctl run pipeline plm-tcin-mapper-api -e=stage -t="${VELA_BUILD_TAG}" --force --wait
         ruleset: *stage-ruleset
 
-      - name: tap-deploy-prod-plm-tcin-mapper
+      - name: tap-deploy-prod-plm-tcin-mapper-api
         image: docker.target.com/tap/vela-tapctl:latest
         secrets:
           - source: tap_token
             target: tapitoken
         commands:
           - sleep 10
-          - tapctl run pipeline plm-tcin-mapper -e=prod -t="${VELA_BUILD_TAG}" --force --wait
+          - tapctl run pipeline plm-tcin-mapper-api -e=prod -t="${VELA_BUILD_TAG}" --force --wait
+        ruleset: *prod-ruleset
+
+      # plm-tcin-mapper-client deploys
+      - name: tap-deploy-dev-plm-tcin-mapper-client
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-tcin-mapper-client -e=dev -t="b${BUILD_NUMBER}-${BUILD_COMMIT:0:8}" --force --wait
+        ruleset: *dev-ruleset
+
+      - name: tap-deploy-stage-plm-tcin-mapper-client
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-tcin-mapper-client -e=stage -t="${VELA_BUILD_TAG}" --force --wait
+        ruleset: *stage-ruleset
+
+      - name: tap-deploy-prod-plm-tcin-mapper-client
+        image: docker.target.com/tap/vela-tapctl:latest
+        secrets:
+          - source: tap_token
+            target: tapitoken
+        commands:
+          - sleep 10
+          - tapctl run pipeline plm-tcin-mapper-client -e=prod -t="${VELA_BUILD_TAG}" --force --wait
         ruleset: *prod-ruleset
 
 # ── Secrets ───────────────────────────────────────────────────────────────────

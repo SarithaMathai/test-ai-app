@@ -1,15 +1,14 @@
-# PLM AI Apps — single parameterized image for all HTTP service apps.
-# Selects the app at build time via APP_PACKAGE build arg.
+# PLM Think Tank AI — FastAPI application.
+# Standalone service for AI prompt generation and reasoning.
 #
 # Base image: https://github.com/target-corp/python-docker-uv
 #   Provides Python 3.12, uv, Target CA certs, Artifactory pip config, non-root user.
 #
-# Usage:
-#   # default (plm-think-tank-ai)
-#   docker build -t plm-ai-apps:local .
+# Build:
+#   docker build -f apps/plm-think-tank-ai/Dockerfile -t plm-think-tank-ai:latest .
 #
-#   # explicit app selection
-#   docker build --build-arg APP_PACKAGE=plm-think-tank-ai -t plm-ai-apps:local .
+# Run:
+#   docker run -p 8080:8080 plm-think-tank-ai:latest
 #
 # ─────────────────────────────────────────────────────────────────────────────
 FROM docker.target.com/iam/python/tgt-uv:3.12-slim-bullseye
@@ -31,23 +30,19 @@ ENV VIRTUAL_ENV=/app/.venv \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Build arg — which workspace app to install.
-# Example: --build-arg APP_PACKAGE=plm-think-tank-ai
-ARG APP_PACKAGE="plm-think-tank-ai"
-
 # ── Stage 1: dependency install (cached layer) ────────────────────────────────
 # Copy lockfile + root manifests first so Docker can cache the install layer.
 COPY pyproject.toml uv.lock* .python-version* README.md ./
 COPY libs/ ./libs/
-COPY apps/ ./apps/
+COPY apps/plm-think-tank-ai/ ./apps/plm-think-tank-ai/
 
-# Install only the selected app and its transitive runtime deps.
+# Install only this app and its transitive runtime deps.
 # --package scopes to one app; dev/test/lint groups are excluded by default.
-RUN uv sync --frozen --package "${APP_PACKAGE}"
+RUN uv sync --frozen --package plm-think-tank-ai
 
 # ── Stage 2: application source + runtime files ───────────────────────────────
 # Per-app entrypoint lives alongside the app source.
-COPY apps/${APP_PACKAGE}/entrypoint.sh ./entrypoint.sh
+COPY apps/plm-think-tank-ai/entrypoint.sh ./entrypoint.sh
 # Bake non-secret YAML config defaults into the image.
 # TAP mounts /tap/config at deploy time to override (see entrypoint.sh).
 COPY config/ /app/config/

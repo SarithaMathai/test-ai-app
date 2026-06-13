@@ -55,8 +55,8 @@ lint = [
     "ruff>=0.9.0",
     "mypy>=1.13.0",
 ]
-# Optional operator UI for plm-tcin-mapper (Streamlit). Not installed in the
-# Docker image (the build uses `uv sync --package`, which excludes named groups).
+# Deprecated: UI dependencies now declared in plm-tcin-mapper-client's pyproject.toml.
+# This group is kept for backward compatibility with development workflows.
 ui = [
     "streamlit>=1.40.0,<2.0.0",
 ]
