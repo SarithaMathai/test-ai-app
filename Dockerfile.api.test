@@ -1,0 +1,39 @@
+# Test Dockerfile for API (uses public base image)
+FROM python:3.12
+
+WORKDIR /app
+
+# Install uv
+RUN pip install --no-cache-dir uv
+
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:${PATH}" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Copy project files
+COPY pyproject.toml uv.lock* .python-version* README.md* ./
+COPY libs/ ./libs/ 2>/dev/null || true
+COPY apps/plm-tcin-mapper-api/ ./apps/plm-tcin-mapper-api/
+
+# Install dependencies
+RUN uv sync --frozen --package plm-tcin-mapper-api
+
+# Copy entrypoint
+COPY apps/plm-tcin-mapper-api/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+# Setup config directories
+RUN mkdir -p /app/config /tap/config /tap/certificates /tap/secret && \
+    mkdir -p /tap/secret/restricted
+
+# Default config
+ENV APP_CONFIG_DIR=/app/config
+ENV APP_PORT=8080
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health').read()" || exit 1
+
+ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]

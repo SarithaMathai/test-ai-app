@@ -1,0 +1,173 @@
+"""Mapping service — wraps the matching pipeline for use by FastAPI routes."""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from uuid import uuid4
+
+from ai_core.config import Settings
+from ai_core.llm.base import LLMClient
+from ai_mongo import MongoClientManager
+
+from plm_tcin_mapper_api.models.schemas import (
+    ColorCandidateItem,
+    MappingItem,
+    MappingRunRequest,
+    MappingRunResponse,
+    MappingsResponse,
+)
+from plm_tcin_mapper_api.pipeline.batch_processor import LargeBatchProcessor
+
+logger = logging.getLogger(__name__)
+
+# Collection name constants
+_TCIN_COL = "tcin_records"
+_VAR_COL = "variation_records"
+_MAPPING_COL = "mappings"
+
+
+class MappingService:
+    def __init__(self, mongo: MongoClientManager, llm: LLMClient, settings: Settings) -> None:
+        self._mongo = mongo
+        self._llm = llm
+        self._settings = settings
+
+    async def run(self, request: MappingRunRequest) -> MappingRunResponse:
+        """Run the matching pipeline. Executes sync pipeline in a thread pool to avoid blocking."""
+        return await asyncio.get_event_loop().run_in_executor(None, self._run_sync, request)
+
+    def _run_sync(self, request: MappingRunRequest) -> MappingRunResponse:
+        from plm_tcin_mapper_api.pipeline.orchestrator import _get_pids_to_match, run_batch
+
+        db = self._mongo.get_sync_db()
+        cfg = self._settings
+
+        batch_id = request.batch_id or (f"shadow_{uuid4().hex[:8]}" if request.shadow else f"batch_{uuid4().hex[:8]}")
+
+        if request.pid:
+            # Single PID — use fast path
+            pids = [request.pid]
+        else:
+            # Multiple PIDs — resolve scope via unmatched_only flag
+            unmatched_pids = _get_pids_to_match(
+                db,
+                cfg,
+                force=request.force,
+                department=request.department,
+                unmatched_only=request.unmatched_only,
+            )
+            pids = unmatched_pids
+
+            # If >1000 unmatched PIDs, use concurrent batch processor
+            if len(pids) > 1000:
+                logger.info(
+                    "Large batch detected (%d PIDs) — using concurrent processor",
+                    len(pids),
+                )
+                processor = LargeBatchProcessor(db, cfg, self._llm, cfg)
+                stats = asyncio.run(
+                    processor.run_all_unmatched(
+                        force=request.force,
+                        department=request.department,
+                        shadow_mode=request.shadow,
+                        use_llm=request.use_llm,
+                        dry_run=request.dry_run,
+                        batch_id=batch_id,
+                    )
+                )
+                return MappingRunResponse(
+                    status="ok",
+                    batch_id=batch_id,
+                    total_pids=stats.total_pids,
+                    pids_matched=stats.pids_matched,
+                    pids_no_data=stats.pids_no_data,
+                    pids_errored=stats.pids_errored,
+                    total_mappings_written=stats.total_mappings_written,
+                    status_counts={str(k): v for k, v in stats.status_counts.items()},
+                    dry_run=request.dry_run,
+                )
+
+        # Small batch or single PID — use original sequential processor
+        stats = run_batch(
+            pids=pids,
+            db=db,
+            cfg=cfg,
+            llm=self._llm,
+            use_llm=request.use_llm,
+            dry_run=request.dry_run,
+            batch_id=batch_id,
+            shadow_mode=request.shadow,
+        )
+
+        return MappingRunResponse(
+            status="ok",
+            batch_id=batch_id,
+            total_pids=stats.total_pids,
+            pids_matched=stats.pids_matched,
+            pids_no_data=stats.pids_no_data,
+            pids_errored=stats.pids_errored,
+            total_mappings_written=stats.total_mappings_written,
+            status_counts={str(k): v for k, v in stats.status_counts.items()},
+            dry_run=request.dry_run,
+        )
+
+    async def list_mappings(
+        self,
+        pid: str | None,
+        status: str | None,
+        department: str | None,
+        page: int,
+        page_size: int,
+    ) -> MappingsResponse:
+        db = self._mongo.get_db()
+        col = db[_MAPPING_COL]
+
+        filt: dict = {}
+        if pid:
+            filt["pid"] = pid
+        elif department:
+            # Department-only requests should include every PID that belongs to
+            # that department, even if the UI did not pass a PID filter.
+            dept_pids = await db[_TCIN_COL].distinct("pid", {"department_ids": department})
+            filt["pid"] = {"$in": dept_pids} if dept_pids else {"$in": []}
+
+        if status:
+            filt["status"] = status
+
+        total = await col.count_documents(filt)
+        skip = (page - 1) * page_size
+        docs = await col.find(filt).skip(skip).limit(page_size).to_list(page_size)
+
+        items = [
+            MappingItem(
+                id=str(doc.get("_id", "")),
+                pid=doc["pid"],
+                tcin_id=doc["tcin_id"],
+                tcin_color=doc.get("tcin_color", ""),
+                tcin_color_name=doc.get("tcin_color_name", ""),
+                tcin_size=doc.get("tcin_size", ""),
+                matched_impression_name=doc.get("matched_impression_name"),
+                matched_impression_id=doc.get("matched_impression_id"),
+                color_confidence=doc.get("color_confidence", 0.0),
+                confidence_tier=doc.get("confidence_tier", "LOW"),
+                status=doc.get("status", "NEEDS_REVIEW"),
+                match_round=doc.get("match_round"),
+                batch_id=doc.get("batch_id"),
+                department_ids=doc.get("department_ids", []),
+                variation_size=doc.get("variation_size"),
+                color_match_reason=doc.get("color_match_reason"),
+                color_possible_values=[
+                    ColorCandidateItem(
+                        impression_name=c.get("impression_name", ""),
+                        score=c.get("score", 0.0),
+                        reason=c.get("reason", ""),
+                    )
+                    for c in doc.get("color_possible_values", [])
+                    if isinstance(c, dict)
+                ],
+                llm_rationale=doc.get("llm_rationale"),
+            )
+            for doc in docs
+        ]
+        return MappingsResponse(total=total, page=page, page_size=page_size, items=items)
